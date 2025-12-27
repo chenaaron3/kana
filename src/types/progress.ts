@@ -13,11 +13,16 @@ export interface KanaCard {
   totalCorrect?: number; // Total number of times this kana was answered correctly
 }
 
+export interface EnemyStats {
+  health: number; // 5-20
+  attack: number; // Number of attack attempts before enemy attacks
+  defense: number; // Fixed length for defense prompt
+}
+
 export interface Session {
   uuid: string;
-  level: number;
   selectedKanaIds: string[];
-  levelProgress: number; // 0-10, how many points toward next level
+  enemiesDefeated: number; // Tracks how many enemies defeated (determines attack prompt length)
   totalCorrect: number; // Total number of correct characters answered
   totalAttempts: number; // Total number of character attempts
 }

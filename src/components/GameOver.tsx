@@ -1,0 +1,28 @@
+import { Button } from '~/components/ui/button';
+import { Card, CardContent } from '~/components/ui/card';
+
+interface GameOverProps {
+    enemiesDefeated: number;
+    onRestart: () => void;
+}
+
+export default function GameOver({ enemiesDefeated, onRestart }: GameOverProps) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <Card className="w-full max-w-md">
+                <CardContent className="pt-6">
+                    <div className="space-y-6 text-center">
+                        <h1 className="text-4xl font-bold text-red-600">Game Over</h1>
+                        <p className="text-xl text-muted-foreground">
+                            You defeated {enemiesDefeated} {enemiesDefeated === 1 ? 'enemy' : 'enemies'}
+                        </p>
+                        <Button onClick={onRestart} className="w-full" size="lg">
+                            Restart Game
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+

@@ -2,16 +2,17 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'r
 
 import Projectile from './Projectile';
 
-export type PlayerState = 'idle' | 'hit' | 'attack';
+export type PlayerState = 'idle' | 'hit' | 'attack' | 'heal';
 
 export interface PlayerRef {
     playIdle: () => void;
     playHit: () => void;
     playAttack: () => void;
+    playHeal: () => void;
 }
 
 interface PlayerProps {
-    // No props needed - state is managed internally
+    lives?: number;
 }
 
 // Import all frame images using Vite's glob import
@@ -38,14 +39,19 @@ const attackFrames = sortFrames(
     import.meta.glob('~/assets/player/attack/*.png', { eager: true, import: 'default' })
 );
 
+const healFrames = sortFrames(
+    import.meta.glob('~/assets/player/heal/*.png', { eager: true, import: 'default' })
+);
+
 // Animation configuration
 const ANIMATION_CONFIG = {
     idle: { frames: idleFrames.length, fps: 8 },
     hit: { frames: hitFrames.length, fps: 10 },
     attack: { frames: attackFrames.length, fps: 10 },
+    heal: { frames: healFrames.length, fps: 10 },
 };
 
-const Player = forwardRef<PlayerRef, PlayerProps>((_props, ref) => {
+const Player = forwardRef<PlayerRef, PlayerProps>(({ lives }, ref) => {
     const [state, setState] = useState<PlayerState>('idle');
     const [currentFrame, setCurrentFrame] = useState(0);
     const [showProjectile, setShowProjectile] = useState(false);
@@ -68,6 +74,10 @@ const Player = forwardRef<PlayerRef, PlayerProps>((_props, ref) => {
                 setShowProjectile(true);
             }, 200);
         },
+        playHeal: () => {
+            setState('heal');
+            setShowProjectile(false);
+        },
     }));
 
     // Clamp currentFrame to valid range for current state
@@ -84,6 +94,8 @@ const Player = forwardRef<PlayerRef, PlayerProps>((_props, ref) => {
                     return hitFrames;
                 case 'attack':
                     return attackFrames;
+                case 'heal':
+                    return healFrames;
                 default:
                     return idleFrames;
             }
@@ -135,7 +147,17 @@ const Player = forwardRef<PlayerRef, PlayerProps>((_props, ref) => {
     const currentImage = getCurrentFrameImage();
 
     return (
-        <>
+        <div className="flex flex-col items-center gap-14">
+            {/* Player Lives Display */}
+            {lives !== undefined && (
+                <div className="flex gap-1">
+                    {Array.from({ length: lives }).map((_, i) => (
+                        <span key={i} className={i < lives ? "text-red-600" : "text-gray-400"}>
+                            ❤️
+                        </span>
+                    ))}
+                </div>
+            )}
             <img
                 src={currentImage}
                 alt={`Player ${state}`}
@@ -151,7 +173,7 @@ const Player = forwardRef<PlayerRef, PlayerProps>((_props, ref) => {
                     onComplete={() => setShowProjectile(false)}
                 />
             )}
-        </>
+        </div>
     );
 });
 

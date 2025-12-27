@@ -14,9 +14,8 @@ function App() {
   const handleStart = (kanaIds: string[]) => {
     const newSession: Session = {
       uuid: generateUUID(),
-      level: 1,
       selectedKanaIds: kanaIds,
-      levelProgress: 0,
+      enemiesDefeated: 0,
       totalCorrect: 0,
       totalAttempts: 0,
     };

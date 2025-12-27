@@ -2,22 +2,32 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
-import { Progress } from '~/components/ui/progress';
 import { allKanaCharacters } from '~/data/kana';
 import { getNextKana, initializeKanaCard, reviewKana } from '~/utils/fsrs';
 import { loadProgress, saveProgress } from '~/utils/storage';
 
 import Enemy from './Enemy';
+import GameOver from './GameOver';
 import Player from './Player';
 
 import type { KanaCharacter } from '~/data/kana';
-import type { Session, PreviousAnswer, KanaCard } from "~/types/progress";
+import type { Session, PreviousAnswer, KanaCard, EnemyStats } from "~/types/progress";
 import type { EnemyRef } from './Enemy';
 import type { PlayerRef } from './Player';
 
 interface KanaQuizProps {
   session: Session;
   onBack: () => void;
+}
+
+type PromptType = 'attack' | 'defense';
+
+function generateNewEnemy(): EnemyStats {
+  return {
+    health: Math.floor(Math.random() * 16) + 5, // 5-20
+    attack: Math.floor(Math.random() * 3) + 2, // 2-4
+    defense: Math.floor(Math.random() * 3) + 1, // 1-3
+  };
 }
 
 export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
@@ -38,7 +48,15 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   // Session state (ephemeral, lost on unmount)
   const [sessionState, setSessionState] = useState<Session>(session);
 
-  const [currentLevelSet, setCurrentLevelSet] = useState<KanaCharacter[]>([]);
+  // Game state
+  const [currentEnemy, setCurrentEnemy] = useState<EnemyStats>(() => generateNewEnemy());
+  const [playerLives, setPlayerLives] = useState<number>(3);
+  const [promptAttempt, setPromptAttempt] = useState<number>(0);
+  const [promptType, setPromptType] = useState<PromptType>('attack');
+  const [isGameOver, setIsGameOver] = useState<boolean>(false);
+  const [enemyDefeated, setEnemyDefeated] = useState<boolean>(false);
+
+  const [currentPrompt, setCurrentPrompt] = useState<KanaCharacter[]>([]);
   const [userInput, setUserInput] = useState("");
   const [previousAnswer, setPreviousAnswer] = useState<PreviousAnswer | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -50,71 +68,120 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     sessionState.selectedKanaIds.includes(k.id),
   );
 
-  // Initialize current level set when level changes
-  useEffect(() => {
-    const newSet = generateNewLevelSet(sessionState.level, kanaCards);
-    setCurrentLevelSet(newSet);
-    setUserInput("");
-    // Only clear previousAnswer when selectedKanaIds changes, not when level changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionState.level, sessionState.selectedKanaIds]);
+  // Generate prompt based on type and current state
+  const generatePrompt = (type: PromptType, cards: Record<string, KanaCard>): KanaCharacter[] => {
+    const promptLength = type === 'attack'
+      ? 1 + sessionState.enemiesDefeated // Starts at 1, increases by 1 per enemy defeated
+      : sessionState.enemiesDefeated + currentEnemy.defense; // Fixed length from enemy stat
 
-  // Clear previousAnswer only when selectedKanaIds changes (not on level progression)
-  useEffect(() => {
-    setPreviousAnswer(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionState.selectedKanaIds]);
+    const newPrompt: KanaCharacter[] = [];
+    const usedIds = new Set<string>();
 
-  // Auto focus input when level set changes
-  useEffect(() => {
-    if (currentLevelSet.length > 0 && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [currentLevelSet]);
-
-  const generateNewLevelSet = (level: number, cards: Record<string, KanaCard>) => {
-    const newSet: KanaCharacter[] = [];
-    for (let i = 0; i < level && newSet.length < availableKana.length; i++) {
-      const remaining = availableKana.filter((k) => !newSet.some((c) => c.id === k.id));
+    for (let i = 0; i < promptLength && newPrompt.length < availableKana.length; i++) {
+      const remaining = availableKana.filter((k) => !usedIds.has(k.id));
       if (remaining.length === 0) break;
+
       const next = getNextKana(remaining, cards);
       if (next) {
-        newSet.push(next);
+        newPrompt.push(next);
+        usedIds.add(next.id);
       } else {
         const random = remaining[Math.floor(Math.random() * remaining.length)];
-        if (random) newSet.push(random);
+        if (random) {
+          newPrompt.push(random);
+          usedIds.add(random.id);
+        }
       }
     }
-    return newSet;
+    return newPrompt;
+  };
+
+  // Check if it's time to switch to defense prompt based on promptAttempt
+
+  useEffect(() => {
+    // Switch when promptAttempt is a multiple of enemy.attack (and > 0)
+    let promptType: PromptType = 'attack';
+    if (promptAttempt > 0 && promptAttempt % currentEnemy.attack === 0) {
+      promptType = 'defense';
+    }
+    const newPrompt = generatePrompt(promptType, kanaCards);
+    setPromptType(promptType);
+    setCurrentPrompt(newPrompt);
+    setUserInput("");
+  }, [promptAttempt, currentEnemy]);
+
+  // Clear previousAnswer only when selectedKanaIds changes
+  useEffect(() => {
+    setPreviousAnswer(null);
+  }, [sessionState.selectedKanaIds]);
+
+  // Auto focus input when prompt changes
+  useEffect(() => {
+    if (currentPrompt.length > 0 && inputRef.current && !isGameOver) {
+      inputRef.current.focus();
+    }
+  }, [currentPrompt, isGameOver]);
+
+  // Handle enemy defeat - spawn new enemy
+  useEffect(() => {
+    if (enemyDefeated) {
+      enemyRef.current?.playDie();
+
+      setTimeout(() => {
+        // Spawn new enemy and increment enemies defeated
+        const newEnemy = generateNewEnemy();
+        setCurrentEnemy(newEnemy);
+        setPromptAttempt(0);
+        setPromptType('attack');
+        setEnemyDefeated(false);
+        setSessionState((prev) => ({
+          ...prev,
+          enemiesDefeated: prev.enemiesDefeated + 1,
+        }));
+      }, 1000);
+    }
+  }, [enemyDefeated]);
+
+
+  const playerAttack = (damage: number = 1) => {
+    playerRef.current?.playAttack();
+    setTimeout(() => {
+      const defeated = enemyRef.current?.playHit(damage) ?? false;
+      if (defeated) {
+        setEnemyDefeated(true);
+      }
+    }, 500);
+  };
+
+  const enemyAttack = () => {
+    enemyRef.current?.playAttack();
+    setTimeout(() => {
+      playerRef.current?.playHit();
+    }, 500);
   };
 
   const checkAnswers = (input: string) => {
-    if (currentLevelSet.length === 0) return;
+    if (currentPrompt.length === 0 || isGameOver) return;
 
     const normalizedInput = input.trim().toLowerCase();
     if (!normalizedInput) return;
 
     // Try to match the input string against all romaji in sequence
-    // We'll try to match each kana's romaji starting from the beginning
     let inputIndex = 0;
     let allCorrect = true;
     let correctCount = 0;
     const updatedKanaCards: Record<string, KanaCard> = {};
 
     // Check each kana by trying to match its romaji from current input position
-    currentLevelSet.forEach((kana) => {
-      // Create regex pattern from all possible romaji for this kana
-      // Escape special regex characters and sort by length (longest first) for proper matching
+    currentPrompt.forEach((kana) => {
       const sortedRomaji = [...kana.romaji]
         .map((r) => r.toLowerCase())
         .sort((a, b) => b.length - a.length);
 
-      // Escape special regex characters in romaji
       const escapedRomaji = sortedRomaji.map((r) =>
         r.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
       );
 
-      // Create regex pattern: match any of the romaji at the start of remaining input
       const pattern = new RegExp(`^(${escapedRomaji.join("|")})`, "i");
       const remainingInput = normalizedInput.substring(inputIndex);
       const match = remainingInput.match(pattern);
@@ -123,19 +190,16 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
       let matchedRomaji = "";
 
       if (match) {
-        // Found a match
         matched = true;
         matchedRomaji = match[1]!;
         inputIndex += matchedRomaji.length;
       } else {
-        // No match found - extract what the user typed (up to max romaji length)
         const maxRomajiLength = Math.max(...kana.romaji.map((r) => r.length));
         const endIndex = Math.min(
           inputIndex + maxRomajiLength,
           normalizedInput.length,
         );
         matchedRomaji = normalizedInput.substring(inputIndex, endIndex);
-        // Advance by at least 1 character to avoid infinite loop
         inputIndex += Math.max(1, matchedRomaji.length);
       }
 
@@ -156,52 +220,14 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
 
     // Update accuracy tracking
     const newTotalCorrect = sessionState.totalCorrect + correctCount;
-    const newTotalAttempts = sessionState.totalAttempts + currentLevelSet.length;
+    const newTotalAttempts = sessionState.totalAttempts + currentPrompt.length;
 
-    // Store the previous answer with all kana characters and full user input
+    // Store the previous answer
     setPreviousAnswer({
-      kana: currentLevelSet,
-      userInput: input, // Store the original input (not normalized)
+      kana: currentPrompt,
+      userInput: input,
       isCorrect: allCorrect,
     });
-
-    // Update level progression
-    let newLevelProgress = sessionState.levelProgress;
-    let newLevel = sessionState.level;
-    let levelEnded = false;
-
-    if (allCorrect) {
-      // All correct - increase progress
-      newLevelProgress = sessionState.levelProgress + 1;
-
-      if (newLevelProgress >= 10) {
-        newLevel = sessionState.level + 1;
-        newLevelProgress = 0;
-        levelEnded = true;
-      }
-    } else {
-      // Not all correct - decrease progress (but don't go below 0)
-      // Once a level is reached, it cannot be demoted - progress just floors at 0
-      newLevelProgress = Math.max(0, sessionState.levelProgress - 1);
-    }
-
-    // Trigger animations based on answer
-    if (levelEnded) {
-      enemyRef.current?.playDie();
-      playerRef.current?.playAttack();
-    } else if (allCorrect) {
-      playerRef.current?.playAttack();
-      // Delay enemy hit animation to let fireball reach it first
-      setTimeout(() => {
-        enemyRef.current?.playHit();
-      }, 500);
-    } else {
-      enemyRef.current?.playAttack();
-      setTimeout(() => {
-        playerRef.current?.playHit();
-      }, 500);
-
-    }
 
     // Update kanaCards state and save to persistent storage
     const finalKanaCards = { ...kanaCards, ...updatedKanaCards };
@@ -211,22 +237,51 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     // Update session state
     setSessionState((prev) => ({
       ...prev,
-      levelProgress: newLevelProgress,
-      level: newLevel,
       totalCorrect: newTotalCorrect,
       totalAttempts: newTotalAttempts,
     }));
 
-    // Generate new level set immediately
-    const newSet = generateNewLevelSet(newLevel, finalKanaCards);
-    setCurrentLevelSet(newSet);
+    // Increment prompt attempt (regardless of prompt type or correctness)
+    const newPromptAttempt = promptAttempt + 1;
+    setPromptAttempt(newPromptAttempt);
+
+    // Handle attack vs defense prompts differently
+    if (promptType === 'attack') {
+      if (allCorrect) {
+        // Correct attack - reduce enemy health
+        playerAttack(1);
+      } else {
+        // Incorrect attack - enemy heals and attack counter increases faster
+        // Heal enemy by 1 HP
+        enemyRef.current?.heal(1);
+      }
+    } else {
+      // Defense prompt
+      if (allCorrect) {
+        // Blocked attack - reward player with a heart
+        playerRef.current?.playHeal();
+        // Restore a life if player has less than 5 lives
+        setPlayerLives((prev) => Math.min(5, prev + 1));
+      } else {
+        // Failed defense - lose a life
+        const newLives = playerLives - 1;
+        setPlayerLives(newLives);
+        enemyAttack();
+
+        // Check for game over
+        if (newLives <= 0) {
+          setIsGameOver(true);
+        }
+      }
+    }
+
+    // Note: New prompt will be generated by useEffect when promptType or other dependencies change
     setUserInput("");
-    // Keep previousAnswer until next submission (it will be updated on next checkAnswers call)
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (userInput.trim() && currentLevelSet.length > 0) {
+    if (userInput.trim() && currentPrompt.length > 0 && !isGameOver) {
       checkAnswers(userInput);
     }
   };
@@ -237,7 +292,11 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     }
   };
 
-  if (currentLevelSet.length === 0) {
+  const handleRestart = () => {
+    onBack();
+  };
+
+  if (currentPrompt.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
@@ -299,18 +358,31 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
           <div className="relative flex items-end w-full h-64">
             {/* Player on the left half */}
             <div className="flex-1 flex justify-center items-end h-full">
-              <Player ref={playerRef} />
+              <Player ref={playerRef} lives={playerLives} />
             </div>
 
             {/* Enemy on the right half */}
             <div className="flex-1 flex justify-center items-end h-full">
-              <Enemy ref={enemyRef} />
+              <Enemy
+                ref={enemyRef}
+                maxHealth={currentEnemy.health}
+              />
             </div>
           </div>
 
           {/* Current Prompt */}
           <Card>
             <CardContent className="relative pt-6">
+              {/* Prompt Type Indicator */}
+              <div className="absolute top-4 left-4">
+                <span className={`text-sm font-semibold px-3 py-1 rounded ${promptType === 'attack'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-red-600 text-white'
+                  }`}>
+                  {promptType === 'attack' ? 'ATTACK' : 'DEFENSE'}
+                </span>
+              </div>
+
               {/* Accuracy in top right */}
               {sessionState.totalAttempts > 0 && (
                 <div className="absolute top-4 right-4 text-sm text-muted-foreground">
@@ -319,7 +391,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
               )}
               <div className="space-y-6 text-center">
                 <div className="text-5xl font-bold">
-                  {currentLevelSet.map((kana) => kana.character).join('')}
+                  {currentPrompt.map((kana) => kana.character).join('')}
                 </div>
                 <form onSubmit={handleSubmit} className="flex justify-center">
                   <Input
@@ -330,22 +402,22 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                     onKeyPress={handleKeyPress}
                     className="max-w-2xl text-2xl h-14"
                     autoFocus
+                    disabled={isGameOver}
                   />
                 </form>
               </div>
             </CardContent>
           </Card>
-
-          {/* Level Progression */}
-          <div className="relative">
-            <Progress value={(sessionState.levelProgress / 10) * 100} className="h-8" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-sm font-semibold">Stage {sessionState.level}</span>
-            </div>
-          </div>
         </div>
       </div>
+
+      {/* Game Over Screen */}
+      {isGameOver && (
+        <GameOver
+          enemiesDefeated={sessionState.enemiesDefeated}
+          onRestart={handleRestart}
+        />
+      )}
     </div>
   );
 }
-
