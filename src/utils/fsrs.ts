@@ -50,7 +50,7 @@ export function initializeKanaCard(kanaId: string): KanaCard {
  */
 function calculateWeight(
   kanaCard: KanaCard | null,
-  now: Date = new Date(),
+  now: Date = new Date()
 ): number {
   if (!kanaCard) {
     // New card - competitive weight to ensure they get exposure
@@ -120,7 +120,7 @@ function calculateWeight(
 export function getNextKana(
   availableKana: KanaCharacter[],
   kanaCards: Record<string, KanaCard>,
-  now: Date = new Date(),
+  now: Date = new Date()
 ): KanaCharacter | null {
   if (availableKana.length === 0) return null;
 
@@ -146,8 +146,8 @@ export function getNextKana(
   let cardsToSelectFrom: Array<{ kana: KanaCharacter; weight: number }>;
 
   if (newCards.length > 0 && otherCards.length > 0) {
-    // Both new and other cards exist - mix them 20% new, 80% other
-    const useNewCardPool = Math.random() < 0.2;
+    // Both new and other cards exist - mix them 50% new, 50% other
+    const useNewCardPool = Math.random() < 0.5;
     cardsToSelectFrom = useNewCardPool ? newCards : otherCards;
   } else if (otherCards.length > 0) {
     // Only other cards exist
@@ -163,7 +163,7 @@ export function getNextKana(
   // Calculate total weight for normalization
   const totalWeight = cardsToSelectFrom.reduce(
     (sum, item) => sum + item.weight,
-    0,
+    0
   );
 
   if (totalWeight === 0) {
@@ -204,7 +204,7 @@ export function getNextKana(
  * @returns 'positive' | 'neutral' | 'negative'
  */
 function getPerformanceHistory(
-  kanaCard: KanaCard,
+  kanaCard: KanaCard
 ): "positive" | "neutral" | "negative" {
   const totalShown = kanaCard.totalShown ?? 0;
   const totalCorrect = kanaCard.totalCorrect ?? 0;
@@ -233,7 +233,7 @@ function getPerformanceHistory(
 export function reviewKana(
   kanaCard: KanaCard,
   isCorrect: boolean,
-  now: Date = new Date(),
+  now: Date = new Date()
 ): KanaCard {
   let grade: Grade;
 

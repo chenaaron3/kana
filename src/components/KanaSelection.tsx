@@ -269,7 +269,7 @@ export default function KanaSelection({ onStart }: KanaSelectionProps) {
     <TooltipProvider delayDuration={0}>
       <div className="min-h-screen bg-background">
         {/* Sticky Header */}
-        <div className="sticky top-0 z-10 border-b bg-card shadow-sm">
+        <div className="sticky top-0 z-10 border-b bg-amber-50 shadow-sm">
           <div className="mx-auto max-w-7xl px-4 py-4">
             <div className="flex items-center justify-between">
               <h1 className="text-3xl font-bold tracking-tight">

@@ -7,8 +7,13 @@ import { allKanaCharacters } from '~/data/kana';
 import { getNextKana, initializeKanaCard, reviewKana } from '~/utils/fsrs';
 import { loadProgress, saveProgress } from '~/utils/storage';
 
+import Enemy from './Enemy';
+import Player from './Player';
+
 import type { KanaCharacter } from '~/data/kana';
 import type { Session, PreviousAnswer, KanaCard } from "~/types/progress";
+import type { EnemyRef } from './Enemy';
+import type { PlayerRef } from './Player';
 
 interface KanaQuizProps {
   session: Session;
@@ -37,6 +42,8 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const [userInput, setUserInput] = useState("");
   const [previousAnswer, setPreviousAnswer] = useState<PreviousAnswer | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const enemyRef = useRef<EnemyRef>(null);
+  const playerRef = useRef<PlayerRef>(null);
 
   // Get available kana based on selection
   const availableKana = allKanaCharacters.filter((k) =>
@@ -48,9 +55,15 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     const newSet = generateNewLevelSet(sessionState.level, kanaCards);
     setCurrentLevelSet(newSet);
     setUserInput("");
-    setPreviousAnswer(null);
+    // Only clear previousAnswer when selectedKanaIds changes, not when level changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionState.level, sessionState.selectedKanaIds]);
+
+  // Clear previousAnswer only when selectedKanaIds changes (not on level progression)
+  useEffect(() => {
+    setPreviousAnswer(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionState.selectedKanaIds]);
 
   // Auto focus input when level set changes
   useEffect(() => {
@@ -155,6 +168,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     // Update level progression
     let newLevelProgress = sessionState.levelProgress;
     let newLevel = sessionState.level;
+    let levelEnded = false;
 
     if (allCorrect) {
       // All correct - increase progress
@@ -163,11 +177,30 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
       if (newLevelProgress >= 10) {
         newLevel = sessionState.level + 1;
         newLevelProgress = 0;
+        levelEnded = true;
       }
     } else {
       // Not all correct - decrease progress (but don't go below 0)
       // Once a level is reached, it cannot be demoted - progress just floors at 0
       newLevelProgress = Math.max(0, sessionState.levelProgress - 1);
+    }
+
+    // Trigger animations based on answer
+    if (levelEnded) {
+      enemyRef.current?.playDie();
+      playerRef.current?.playAttack();
+    } else if (allCorrect) {
+      playerRef.current?.playAttack();
+      // Delay enemy hit animation to let fireball reach it first
+      setTimeout(() => {
+        enemyRef.current?.playHit();
+      }, 500);
+    } else {
+      enemyRef.current?.playAttack();
+      setTimeout(() => {
+        playerRef.current?.playHit();
+      }, 500);
+
     }
 
     // Update kanaCards state and save to persistent storage
@@ -222,7 +255,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
           ? "bg-green-600 border-green-600"
           : "bg-red-600 border-red-600"
         : "bg-card border-border"
-        }`}>
+        }`} style={!previousAnswer ? { backgroundColor: 'hsl(var(--card))' } : undefined}>
         <div className="relative mx-auto max-w-4xl px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             {/* Back Button */}
@@ -262,6 +295,19 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
       {/* Main Quiz Area */}
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-4xl space-y-8">
+          {/* Player and Enemy above prompt box */}
+          <div className="relative flex items-end w-full h-64">
+            {/* Player on the left half */}
+            <div className="flex-1 flex justify-center items-end h-full">
+              <Player ref={playerRef} />
+            </div>
+
+            {/* Enemy on the right half */}
+            <div className="flex-1 flex justify-center items-end h-full">
+              <Enemy ref={enemyRef} />
+            </div>
+          </div>
+
           {/* Current Prompt */}
           <Card>
             <CardContent className="relative pt-6">
@@ -282,7 +328,6 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder={`Type romaji for ${currentLevelSet.length} characters...`}
                     className="max-w-2xl text-2xl h-14"
                     autoFocus
                   />
