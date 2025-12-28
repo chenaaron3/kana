@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button } from '~/components/ui/button';
-import { Card, CardContent } from '~/components/ui/card';
-import { Input } from '~/components/ui/input';
+import { Badge } from '~/components/ui/8bit/badge';
+import { Button } from '~/components/ui/8bit/button';
+import { Card, CardContent } from '~/components/ui/8bit/card';
+import { Input } from '~/components/ui/8bit/input';
+import { Kbd } from '~/components/ui/8bit/kbd';
 import { allKanaCharacters } from '~/data/kana';
 import { getNextKana, initializeKanaCard, reviewKana } from '~/utils/fsrs';
 import { loadProgress, saveProgress } from '~/utils/storage';
@@ -254,14 +256,17 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
         // Incorrect attack - enemy heals and attack counter increases faster
         // Heal enemy by 1 HP
         enemyRef.current?.heal(1);
+        // Show player miss indicator
+        playerRef.current?.miss();
       }
     } else {
       // Defense prompt
       if (allCorrect) {
         // Blocked attack - reward player with a heart
         playerRef.current?.playHeal();
-        // Restore a life if player has less than 5 lives
-        setPlayerLives((prev) => Math.min(5, prev + 1));
+        enemyRef.current?.playMiss(); // Plays miss animation and shows floating text
+        // Restore a life if player has less than 3 lives
+        setPlayerLives((prev) => Math.min(3, prev + 1));
       } else {
         // Failed defense - lose a life
         const newLives = playerLives - 1;
@@ -323,7 +328,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
               variant={previousAnswer ? "ghost" : "outline"}
               className={previousAnswer ? "text-white hover:bg-white/20 border-white" : ""}
             >
-              Back to Selection
+              Back
             </Button>
 
             {/* Previous Answer - Absolutely centered */}
@@ -358,14 +363,25 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
           <div className="relative flex items-end w-full h-64">
             {/* Player on the left half */}
             <div className="flex-1 flex justify-center items-end h-full">
-              <Player ref={playerRef} lives={playerLives} />
+              <Player
+                ref={playerRef}
+                lives={playerLives}
+                isActive={promptType === 'attack'}
+                enemySpriteRef={enemyRef.current ? { current: enemyRef.current.getSpriteElement() } as React.RefObject<HTMLElement | null> : undefined}
+              />
             </div>
 
             {/* Enemy on the right half */}
             <div className="flex-1 flex justify-center items-end h-full">
               <Enemy
                 ref={enemyRef}
-                maxHealth={currentEnemy.health}
+                enemy={currentEnemy}
+                isActive={promptType === 'defense'}
+                turnsUntilAttack={
+                  promptType === 'attack'
+                    ? currentEnemy.attack - (promptAttempt % currentEnemy.attack)
+                    : undefined
+                }
               />
             </div>
           </div>
@@ -375,12 +391,14 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
             <CardContent className="relative pt-6">
               {/* Prompt Type Indicator */}
               <div className="absolute top-4 left-4">
-                <span className={`text-sm font-semibold px-3 py-1 rounded ${promptType === 'attack'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-red-600 text-white'
-                  }`}>
-                  {promptType === 'attack' ? 'ATTACK' : 'DEFENSE'}
-                </span>
+                <Badge
+                  className={`text-sm font-semibold px-3 py-1 ${promptType === 'attack'
+                    ? 'text-blue-600'
+                    : 'text-red-600 '
+                    }`}
+                >
+                  {promptType === 'attack' ? 'ATTACK' : 'DEFEND'}
+                </Badge>
               </div>
 
               {/* Accuracy in top right */}
@@ -390,12 +408,16 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                 </div>
               )}
               <div className="space-y-6 text-center">
-                <div className="text-5xl font-bold">
-                  {currentPrompt.map((kana) => kana.character).join('')}
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  {currentPrompt.map((kana, index) => (
+                    <Kbd key={index} className="text-5xl font-bold px-3 py-2">
+                      {kana.character}
+                    </Kbd>
+                  ))}
                 </div>
                 <form onSubmit={handleSubmit} className="flex justify-center">
                   <Input
-                    ref={inputRef as React.RefObject<HTMLInputElement>}
+                    ref={inputRef}
                     type="text"
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}

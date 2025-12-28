@@ -1,5 +1,8 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import emptyHeart from '~/assets/hearts/empty.png';
+import fullHeart from '~/assets/hearts/full.png';
 
+import FloatingText from './FloatingText';
 import Projectile from './Projectile';
 
 export type PlayerState = 'idle' | 'hit' | 'attack' | 'heal';
@@ -9,10 +12,13 @@ export interface PlayerRef {
     playHit: () => void;
     playAttack: () => void;
     playHeal: () => void;
+    miss: () => void;
 }
 
 interface PlayerProps {
     lives?: number;
+    isActive?: boolean;
+    enemySpriteRef?: React.RefObject<HTMLElement | null>;
 }
 
 // Import all frame images using Vite's glob import
@@ -51,10 +57,13 @@ const ANIMATION_CONFIG = {
     heal: { frames: healFrames.length, fps: 10 },
 };
 
-const Player = forwardRef<PlayerRef, PlayerProps>(({ lives }, ref) => {
+const Player = forwardRef<PlayerRef, PlayerProps>(({ lives, isActive = false, enemySpriteRef }, ref) => {
     const [state, setState] = useState<PlayerState>('idle');
     const [currentFrame, setCurrentFrame] = useState(0);
     const [showProjectile, setShowProjectile] = useState(false);
+    const [missPosition, setMissPosition] = useState<{ x: number; y: number } | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const spriteRef = useRef<HTMLImageElement>(null);
     const config = ANIMATION_CONFIG[state];
 
     // Expose imperative API via ref
@@ -77,6 +86,16 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ lives }, ref) => {
         playHeal: () => {
             setState('heal');
             setShowProjectile(false);
+        },
+        miss: () => {
+            if (spriteRef.current && containerRef.current) {
+                const spriteRect = spriteRef.current.getBoundingClientRect();
+                const containerRect = containerRef.current.getBoundingClientRect();
+                setMissPosition({
+                    x: spriteRect.left + spriteRect.width / 2 - containerRect.left,
+                    y: spriteRect.top + spriteRect.height / 2 - containerRect.top - 20,
+                });
+            }
         },
     }));
 
@@ -147,30 +166,55 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ lives }, ref) => {
     const currentImage = getCurrentFrameImage();
 
     return (
-        <div className="flex flex-col items-center gap-14">
+        <div ref={containerRef} className="flex flex-col items-center gap-14 relative w-full">
             {/* Player Lives Display */}
             {lives !== undefined && (
                 <div className="flex gap-1">
-                    {Array.from({ length: lives }).map((_, i) => (
-                        <span key={i} className={i < lives ? "text-red-600" : "text-gray-400"}>
-                            ❤️
-                        </span>
+                    {Array.from({ length: 3 }).map((_, i) => (
+                        <img
+                            key={i}
+                            src={i < lives ? fullHeart : emptyHeart}
+                            alt={i < lives ? "Full heart" : "Empty heart"}
+                            className="w-6 h-6"
+                            style={{
+                                imageRendering: 'pixelated'
+                            }}
+                        />
                     ))}
                 </div>
             )}
-            <img
-                src={currentImage}
-                alt={`Player ${state}`}
-                style={{
-                    imageRendering: 'pixelated', // For crisp pixel art
-                    transform: 'scale(4) translateY(-40%)', // Scale and translate up 50%
-                    height: 'auto',
-                    objectFit: 'contain',
-                }}
-            />
+            <div
+                className={`transition-all duration-300 ${isActive
+                    ? 'drop-shadow-[0_0_20px_rgba(59,130,246,0.8)]'
+                    : ''
+                    }`}
+            >
+                <img
+                    ref={spriteRef}
+                    src={currentImage}
+                    alt={`Player ${state}`}
+                    style={{
+                        imageRendering: 'pixelated', // For crisp pixel art
+                        transform: 'scale(4) translateY(-40%)', // Scale and translate up 50%
+                        height: 'auto',
+                        objectFit: 'contain',
+                    }}
+                />
+            </div>
             {showProjectile && (
                 <Projectile
                     onComplete={() => setShowProjectile(false)}
+                    enemySpriteRef={enemySpriteRef}
+                    playerContainerRef={containerRef}
+                />
+            )}
+            {missPosition && (
+                <FloatingText
+                    text="MISS"
+                    x={missPosition.x}
+                    y={missPosition.y}
+                    color="text-red-600"
+                    onComplete={() => setMissPosition(null)}
                 />
             )}
         </div>

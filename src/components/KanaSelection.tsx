@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Button } from '~/components/ui/8bit/button';
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/8bit/card';
+import { Checkbox } from '~/components/ui/8bit/checkbox';
+import { Kbd } from '~/components/ui/8bit/kbd';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import {
     allKanaGroups, hiraganaCombinationGroups, hiraganaGroups, katakanaCombinationGroups,
@@ -222,11 +224,9 @@ export default function KanaSelection({ onStart }: KanaSelectionProps) {
             <div key={groupKey} className="flex min-w-[70px] flex-col">
               {/* Checkbox at top of column */}
               <div className="mb-1 flex justify-center">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={isSelected}
-                  onChange={() => toggleGroup(groupKey)}
-                  className="h-4 w-4 cursor-pointer"
+                  onCheckedChange={() => toggleGroup(groupKey)}
                 />
               </div>
               {/* Characters in column */}
@@ -239,9 +239,9 @@ export default function KanaSelection({ onStart }: KanaSelectionProps) {
                         <div
                           className={`flex min-h-[40px] flex-col items-center justify-center rounded-md border-2 transition-all cursor-help ${isSelected ? "border-primary" : "border-border"} ${color} p-1`}
                         >
-                          <div className="text-lg font-bold">
+                          <Kbd className="text-lg font-bold px-2 py-1">
                             {char.character}
-                          </div>
+                          </Kbd>
                           <div className="text-xs text-muted-foreground">{char.romaji[0]}</div>
                         </div>
                       </TooltipTrigger>
@@ -277,8 +277,7 @@ export default function KanaSelection({ onStart }: KanaSelectionProps) {
               </h1>
               <Button
                 onClick={handleStart}
-                size="lg"
-                className="bg-green-600 hover:bg-green-700"
+                className="text-green-600 hover:text-green-700"
               >
                 Start Practice
               </Button>

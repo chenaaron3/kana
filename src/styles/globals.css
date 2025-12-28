@@ -1,4 +1,20 @@
 @import "tailwindcss";
+@import "../components/ui/8bit/styles/retro.css";
+
+@keyframes float-up-fade {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(-60px);
+  }
+}
+
+.animate-float-up-fade {
+  animation: float-up-fade 1.5s ease-out forwards;
+}
 
 :root {
   --background: 0 0% 100%;
