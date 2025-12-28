@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Badge } from '~/components/ui/8bit/badge';
+import emptyHeart from '~/assets/hearts/empty.png';
+import fullHeart from '~/assets/hearts/full.png';
 import { Button } from '~/components/ui/8bit/button';
 import { Card, CardContent } from '~/components/ui/8bit/card';
 import { Input } from '~/components/ui/8bit/input';
@@ -140,7 +141,6 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
         setPromptAttempt(0);
         setPromptType('attack');
         setEnemyDefeated(false);
-        setCombo(0); // Reset combo when new enemy spawns
         setSessionState((prev) => ({
           ...prev,
           enemiesDefeated: prev.enemiesDefeated + 1,
@@ -379,40 +379,23 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                 )}
               </div>
             )}
-
-            {/* Spacer for right side */}
-            <div className="w-[140px]" />
           </div>
         </div>
       </div>
 
       {/* Main Quiz Area */}
-      <div className="flex flex-1 flex-col items-center justify-center px-4 py-8">
-        <div className="w-full max-w-4xl space-y-8">
-          {/* Combo Meter */}
-          {combo > 0 && (
-            <div className="flex items-center justify-center gap-2">
-              <Badge className="text-lg font-bold px-4 py-2 retro">
-                COMBO x{combo}
-              </Badge>
-              {combo >= 3 && (
-                <Badge className={`text-sm font-semibold px-3 py-1 ${combo >= 5 ? 'bg-purple-600' : 'bg-blue-600'}`}>
-                  {combo >= 5 ? '2x DMG' : '1.5x DMG'}
-                </Badge>
-              )}
-            </div>
-          )}
-
-          {/* Player and Enemy above prompt box */}
-          <div className="relative flex items-end w-full h-64">
+      <div className="relative flex-1 flex items-center justify-center min-h-0">
+        {/* Player and Enemy - positioned above prompt */}
+        <div className="absolute top-0 left-0 right-0 flex items-end h-64 px-4 pointer-events-none">
+          <div className="w-full max-w-4xl mx-auto flex">
             {/* Player on the left half */}
             <div className="flex-1 flex justify-center items-end h-full">
               <Player
                 ref={playerRef}
-                lives={playerLives}
                 isActive={promptType === 'attack'}
                 enemySpriteRef={enemyRef.current ? { current: enemyRef.current.getSpriteElement() } as React.RefObject<HTMLElement | null> : undefined}
                 projectileType={currentProjectileType}
+                combo={combo}
               />
             </div>
 
@@ -430,21 +413,28 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
               />
             </div>
           </div>
+        </div>
 
-          {/* Current Prompt */}
+        {/* Current Prompt - absolutely centered */}
+        <div className="w-full max-w-2xl px-4">
           <Card>
             <CardContent className="relative pt-6">
-              {/* Prompt Type Indicator */}
-              <div className="absolute top-4 left-4">
-                <Badge
-                  className={`text-sm font-semibold px-3 py-1 ${promptType === 'attack'
-                    ? 'text-blue-600'
-                    : 'text-red-600 '
-                    }`}
-                >
-                  {promptType === 'attack' ? 'ATTACK' : 'DEFEND'}
-                </Badge>
-              </div>
+              {/* Player Lives Display - top left */}
+              {playerLives !== undefined && (
+                <div className="absolute top-4 left-4 flex gap-1">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <img
+                      key={i}
+                      src={i < playerLives ? fullHeart : emptyHeart}
+                      alt={i < playerLives ? "Full heart" : "Empty heart"}
+                      className="w-6 h-6"
+                      style={{
+                        imageRendering: 'pixelated'
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
 
               {/* Accuracy in top right */}
               {sessionState.totalAttempts > 0 && (

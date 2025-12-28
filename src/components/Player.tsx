@@ -1,7 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import emptyHeart from '~/assets/hearts/empty.png';
-import fullHeart from '~/assets/hearts/full.png';
 
+import Fire from './Fire';
 import FloatingText from './FloatingText';
 import Projectile from './Projectile';
 
@@ -16,10 +15,10 @@ export interface PlayerRef {
 }
 
 interface PlayerProps {
-    lives?: number;
     isActive?: boolean;
     enemySpriteRef?: React.RefObject<HTMLElement | null>;
     projectileType?: 'basic' | 'special'; // Type of projectile to use
+    combo?: number; // Combo count for fire effect
 }
 
 // Import all frame images using Vite's glob import
@@ -58,7 +57,7 @@ const ANIMATION_CONFIG = {
     heal: { frames: healFrames.length, fps: 10 },
 };
 
-const Player = forwardRef<PlayerRef, PlayerProps>(({ lives, isActive = false, enemySpriteRef, projectileType = 'basic' }, ref) => {
+const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpriteRef, projectileType = 'basic', combo = 0 }, ref) => {
     const [state, setState] = useState<PlayerState>('idle');
     const [currentFrame, setCurrentFrame] = useState(0);
     const [showProjectile, setShowProjectile] = useState(false);
@@ -167,29 +166,22 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ lives, isActive = false, en
     const currentImage = getCurrentFrameImage();
 
     return (
-        <div ref={containerRef} className="flex flex-col items-center gap-14 relative w-full">
-            {/* Player Lives Display */}
-            {lives !== undefined && (
-                <div className="flex gap-1">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                        <img
-                            key={i}
-                            src={i < lives ? fullHeart : emptyHeart}
-                            alt={i < lives ? "Full heart" : "Empty heart"}
-                            className="w-6 h-6"
-                            style={{
-                                imageRendering: 'pixelated'
-                            }}
-                        />
-                    ))}
-                </div>
-            )}
+        <div ref={containerRef} className="flex flex-col items-center justify-end relative w-full h-full">
             <div
-                className={`transition-all duration-300 ${isActive
+                className={`relative transition-all duration-300 ${isActive
                     ? 'drop-shadow-[0_0_20px_rgba(59,130,246,0.8)]'
                     : ''
                     }`}
+                style={{
+                    width: '50px',
+                    height: '100px',
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    justifyContent: 'center',
+                }}
             >
+                {/* Fire Effect - positioned relative to player sprite */}
+                {combo >= 3 && <Fire combo={combo} />}
                 <img
                     ref={spriteRef}
                     src={currentImage}
@@ -198,6 +190,9 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ lives, isActive = false, en
                         imageRendering: 'pixelated', // For crisp pixel art
                         transform: 'scale(4) translateY(-40%)', // Scale and translate up 50%
                         height: 'auto',
+                        width: 'auto',
+                        maxWidth: '100%',
+                        maxHeight: '100%',
                         objectFit: 'contain',
                     }}
                 />
