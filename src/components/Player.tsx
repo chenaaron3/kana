@@ -19,6 +19,7 @@ interface PlayerProps {
     lives?: number;
     isActive?: boolean;
     enemySpriteRef?: React.RefObject<HTMLElement | null>;
+    projectileType?: 'basic' | 'special'; // Type of projectile to use
 }
 
 // Import all frame images using Vite's glob import
@@ -57,7 +58,7 @@ const ANIMATION_CONFIG = {
     heal: { frames: healFrames.length, fps: 10 },
 };
 
-const Player = forwardRef<PlayerRef, PlayerProps>(({ lives, isActive = false, enemySpriteRef }, ref) => {
+const Player = forwardRef<PlayerRef, PlayerProps>(({ lives, isActive = false, enemySpriteRef, projectileType = 'basic' }, ref) => {
     const [state, setState] = useState<PlayerState>('idle');
     const [currentFrame, setCurrentFrame] = useState(0);
     const [showProjectile, setShowProjectile] = useState(false);
@@ -206,6 +207,7 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ lives, isActive = false, en
                     onComplete={() => setShowProjectile(false)}
                     enemySpriteRef={enemySpriteRef}
                     playerContainerRef={containerRef}
+                    type={projectileType}
                 />
             )}
             {missPosition && (

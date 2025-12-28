@@ -26,7 +26,7 @@ type PromptType = 'attack' | 'defense';
 
 function generateNewEnemy(): EnemyStats {
   return {
-    health: Math.floor(Math.random() * 16) + 5, // 5-20
+    health: Math.floor(Math.random() * 6) + 5, // 5-10
     attack: Math.floor(Math.random() * 3) + 2, // 2-4
     defense: Math.floor(Math.random() * 3) + 1, // 1-3
   };
@@ -57,6 +57,9 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const [promptType, setPromptType] = useState<PromptType>('attack');
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [enemyDefeated, setEnemyDefeated] = useState<boolean>(false);
+  const [combo, setCombo] = useState<number>(0); // Track consecutive correct answers
+  const [promptStartTime, setPromptStartTime] = useState<number>(Date.now()); // Track when prompt was shown
+  const [currentProjectileType, setCurrentProjectileType] = useState<'basic' | 'special'>('basic'); // Current projectile type
 
   const [currentPrompt, setCurrentPrompt] = useState<KanaCharacter[]>([]);
   const [userInput, setUserInput] = useState("");
@@ -110,6 +113,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     setPromptType(promptType);
     setCurrentPrompt(newPrompt);
     setUserInput("");
+    setPromptStartTime(Date.now()); // Reset timer when new prompt is generated
   }, [promptAttempt, currentEnemy]);
 
   // Clear previousAnswer only when selectedKanaIds changes
@@ -136,6 +140,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
         setPromptAttempt(0);
         setPromptType('attack');
         setEnemyDefeated(false);
+        setCombo(0); // Reset combo when new enemy spawns
         setSessionState((prev) => ({
           ...prev,
           enemiesDefeated: prev.enemiesDefeated + 1,
@@ -145,7 +150,8 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   }, [enemyDefeated]);
 
 
-  const playerAttack = (damage: number = 1) => {
+  const playerAttack = (damage: number = 1, projectileType: 'basic' | 'special' = 'basic') => {
+    setCurrentProjectileType(projectileType);
     playerRef.current?.playAttack();
     setTimeout(() => {
       const defeated = enemyRef.current?.playHit(damage) ?? false;
@@ -155,10 +161,26 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     }, 500);
   };
 
+  // Calculate damage multiplier based on combo
+  const getComboMultiplier = (comboCount: number): number => {
+    if (comboCount >= 5) return 2.0;
+    if (comboCount >= 3) return 1.5;
+    return 1.0;
+  };
+
   const enemyAttack = () => {
     enemyRef.current?.playAttack();
     setTimeout(() => {
       playerRef.current?.playHit();
+      // Reduce player lives when enemy attacks
+      setPlayerLives((prev) => {
+        const newLives = prev - 1;
+        // Check for game over
+        if (newLives <= 0) {
+          setIsGameOver(true);
+        }
+        return newLives;
+      });
     }, 500);
   };
 
@@ -247,13 +269,25 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     const newPromptAttempt = promptAttempt + 1;
     setPromptAttempt(newPromptAttempt);
 
+    // Calculate response time and check for quick attack
+    const responseTime = Date.now() - promptStartTime;
+    const isQuickAttack = allCorrect && responseTime < 10000; // Less than 1 second
+
     // Handle attack vs defense prompts differently
     if (promptType === 'attack') {
       if (allCorrect) {
-        // Correct attack - reduce enemy health
-        playerAttack(1);
+        // Correct attack - calculate damage with combo multiplier
+        const newCombo = combo + 1;
+        setCombo(newCombo);
+        const damageMultiplier = getComboMultiplier(newCombo);
+        const damage = Math.ceil(1 * damageMultiplier);
+
+        // Use special projectile for quick attacks
+        const projectileType = isQuickAttack ? 'special' : 'basic';
+        playerAttack(damage, projectileType);
       } else {
-        // Incorrect attack - enemy heals and attack counter increases faster
+        // Incorrect attack - reset combo and enemy heals
+        setCombo(0);
         // Heal enemy by 1 HP
         enemyRef.current?.heal(1);
         // Show player miss indicator
@@ -262,21 +296,17 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     } else {
       // Defense prompt
       if (allCorrect) {
-        // Blocked attack - reward player with a heart
+        // Blocked attack - reward player with a heart and increment combo
+        const newCombo = combo + 1;
+        setCombo(newCombo);
         playerRef.current?.playHeal();
         enemyRef.current?.playMiss(); // Plays miss animation and shows floating text
         // Restore a life if player has less than 3 lives
         setPlayerLives((prev) => Math.min(3, prev + 1));
       } else {
-        // Failed defense - lose a life
-        const newLives = playerLives - 1;
-        setPlayerLives(newLives);
+        // Failed defense - reset combo and enemy attacks
+        setCombo(0);
         enemyAttack();
-
-        // Check for game over
-        if (newLives <= 0) {
-          setIsGameOver(true);
-        }
       }
     }
 
@@ -359,6 +389,20 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
       {/* Main Quiz Area */}
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-4xl space-y-8">
+          {/* Combo Meter */}
+          {combo > 0 && (
+            <div className="flex items-center justify-center gap-2">
+              <Badge className="text-lg font-bold px-4 py-2 retro">
+                COMBO x{combo}
+              </Badge>
+              {combo >= 3 && (
+                <Badge className={`text-sm font-semibold px-3 py-1 ${combo >= 5 ? 'bg-purple-600' : 'bg-blue-600'}`}>
+                  {combo >= 5 ? '2x DMG' : '1.5x DMG'}
+                </Badge>
+              )}
+            </div>
+          )}
+
           {/* Player and Enemy above prompt box */}
           <div className="relative flex items-end w-full h-64">
             {/* Player on the left half */}
@@ -368,6 +412,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                 lives={playerLives}
                 isActive={promptType === 'attack'}
                 enemySpriteRef={enemyRef.current ? { current: enemyRef.current.getSpriteElement() } as React.RefObject<HTMLElement | null> : undefined}
+                projectileType={currentProjectileType}
               />
             </div>
 
@@ -408,9 +453,9 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                 </div>
               )}
               <div className="space-y-6 text-center">
-                <div className="flex items-center justify-center gap-2 flex-wrap">
+                <div className="flex items-center justify-center flex-wrap">
                   {currentPrompt.map((kana, index) => (
-                    <Kbd key={index} className="text-5xl font-bold px-3 py-2">
+                    <Kbd key={index} className="text-5xl font-bold py-2">
                       {kana.character}
                     </Kbd>
                   ))}

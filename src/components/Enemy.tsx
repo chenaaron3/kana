@@ -103,6 +103,8 @@ const Enemy = forwardRef<EnemyRef, EnemyProps>(({ enemy, isActive = false, turns
             setState('die');
         },
         playMiss: () => {
+            // Enemy takes health on miss
+            setCurrentHealth((prev) => Math.max(0, prev - 1));
             setState('miss');
             // Show floating miss text
             if (spriteRef.current && containerRef.current) {

@@ -5,6 +5,7 @@ interface ProjectileProps {
     onComplete: () => void;
     enemySpriteRef?: React.RefObject<HTMLElement | null>;
     playerContainerRef?: React.RefObject<HTMLElement | null>;
+    type?: 'basic' | 'special'; // Type of projectile
 }
 
 // Import all projectile frame images using Vite's glob import
@@ -19,11 +20,21 @@ const sortFrames = (frames: Record<string, any>): string[] => {
         .map(([, url]) => url as string);
 };
 
-const projectileFrames = sortFrames(
+const basicProjectileFrames = sortFrames(
     import.meta.glob('~/assets/projectile/basic/*.png', { eager: true, import: 'default' })
 );
 
-const Projectile = ({ onComplete, enemySpriteRef, playerContainerRef }: ProjectileProps) => {
+const specialProjectileFrames = sortFrames(
+    import.meta.glob('~/assets/projectile/special/*.png', { eager: true, import: 'default' })
+);
+
+// Configuration for projectile sizes
+const PROJECTILE_SCALE: Record<'basic' | 'special', number> = {
+    basic: 0.25,
+    special: 3, // Special projectiles are much larger
+};
+
+const Projectile = ({ onComplete, enemySpriteRef, playerContainerRef, type = 'basic' }: ProjectileProps) => {
     const [currentFrame, setCurrentFrame] = useState(0);
     const [startPosition, setStartPosition] = useState<{ x: number; y: number } | null>(null);
     const [targetPosition, setTargetPosition] = useState<{ x: number; y: number } | null>(null);
@@ -91,14 +102,16 @@ const Projectile = ({ onComplete, enemySpriteRef, playerContainerRef }: Projecti
 
         const interval = setInterval(() => {
             setCurrentFrame((prev) => {
+                const projectileFrames = type === 'special' ? specialProjectileFrames : basicProjectileFrames;
                 const next = (prev + 1) % projectileFrames.length;
                 return next;
             });
         }, frameInterval);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [type]);
 
+    const projectileFrames = type === 'special' ? specialProjectileFrames : basicProjectileFrames;
     const currentImage = projectileFrames[currentFrame] || projectileFrames[0] || '';
 
     if (!startPosition || !targetPosition) return null;
@@ -132,7 +145,7 @@ const Projectile = ({ onComplete, enemySpriteRef, playerContainerRef }: Projecti
                 style={{
                     imageRendering: 'pixelated',
                     display: 'block',
-                    transform: 'translate(-50%, -50%) scale(0.25)',
+                    transform: `translate(-50%, -50%) scale(${PROJECTILE_SCALE[type]})`,
                 }}
             />
         </motion.div>
