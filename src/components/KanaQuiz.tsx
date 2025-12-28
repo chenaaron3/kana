@@ -384,94 +384,98 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
       </div>
 
       {/* Main Quiz Area */}
-      <div className="relative flex-1 flex items-center justify-center min-h-0">
-        {/* Player and Enemy - positioned above prompt */}
-        <div className="absolute top-0 left-0 right-0 flex items-end h-64 px-4 pointer-events-none">
-          <div className="w-full max-w-4xl mx-auto flex">
-            {/* Player on the left half */}
-            <div className="flex-1 flex justify-center items-end h-full">
-              <Player
-                ref={playerRef}
-                isActive={promptType === 'attack'}
-                enemySpriteRef={enemyRef.current ? { current: enemyRef.current.getSpriteElement() } as React.RefObject<HTMLElement | null> : undefined}
-                projectileType={currentProjectileType}
-                combo={combo}
-              />
-            </div>
+      {!isGameOver && (
+        <div className="relative flex-1 flex items-center justify-center min-h-0">
+          {/* Player and Enemy - positioned above prompt */}
+          <div className="absolute top-0 left-0 right-0 flex items-end h-64 px-4 pointer-events-none">
+            <div className="w-full max-w-4xl mx-auto flex">
+              {/* Player on the left half */}
+              <div className="flex-1 flex justify-center items-end h-full">
+                <Player
+                  ref={playerRef}
+                  isActive={promptType === 'attack'}
+                  enemySpriteRef={enemyRef.current ? { current: enemyRef.current.getSpriteElement() } as React.RefObject<HTMLElement | null> : undefined}
+                  projectileType={currentProjectileType}
+                  combo={combo}
+                />
+              </div>
 
-            {/* Enemy on the right half */}
-            <div className="flex-1 flex justify-center items-end h-full">
-              <Enemy
-                ref={enemyRef}
-                enemy={currentEnemy}
-                isActive={promptType === 'defense'}
-                turnsUntilAttack={
-                  promptType === 'attack'
-                    ? currentEnemy.attack - (promptAttempt % currentEnemy.attack)
-                    : undefined
-                }
-              />
+              {/* Enemy on the right half */}
+              <div className="flex-1 flex justify-center items-end h-full">
+                <Enemy
+                  ref={enemyRef}
+                  enemy={currentEnemy}
+                  isActive={promptType === 'defense'}
+                  turnsUntilAttack={
+                    promptType === 'attack'
+                      ? currentEnemy.attack - (promptAttempt % currentEnemy.attack)
+                      : undefined
+                  }
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Current Prompt - absolutely centered */}
-        <div className="w-full max-w-2xl px-4">
-          <Card>
-            <CardContent className="relative pt-6">
-              {/* Player Lives Display - top left */}
-              {playerLives !== undefined && (
-                <div className="absolute top-4 left-4 flex gap-1">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <img
-                      key={i}
-                      src={i < playerLives ? fullHeart : emptyHeart}
-                      alt={i < playerLives ? "Full heart" : "Empty heart"}
-                      className="w-6 h-6"
-                      style={{
-                        imageRendering: 'pixelated'
-                      }}
+          {/* Current Prompt - absolutely centered */}
+          <div className="w-full max-w-2xl px-4">
+            <Card>
+              <CardContent className="relative pt-6">
+                {/* Player Lives Display - top left */}
+                {playerLives !== undefined && (
+                  <div className="absolute top-4 left-4 flex gap-1">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <img
+                        key={i}
+                        src={i < playerLives ? fullHeart : emptyHeart}
+                        alt={i < playerLives ? "Full heart" : "Empty heart"}
+                        className="w-6 h-6"
+                        style={{
+                          imageRendering: 'pixelated'
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Accuracy in top right */}
+                {sessionState.totalAttempts > 0 && (
+                  <div className="absolute top-4 right-4 text-sm text-muted-foreground">
+                    {sessionState.totalCorrect} / {sessionState.totalAttempts}
+                  </div>
+                )}
+                <div className="space-y-6 text-center">
+                  <div className="flex items-center justify-center flex-wrap">
+                    {currentPrompt.map((kana, index) => (
+                      <Kbd key={index} className="text-5xl font-bold py-2">
+                        {kana.character}
+                      </Kbd>
+                    ))}
+                  </div>
+                  <form onSubmit={handleSubmit} className="flex justify-center">
+                    <Input
+                      ref={inputRef}
+                      type="text"
+                      value={userInput}
+                      onChange={(e) => setUserInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      className="max-w-2xl text-2xl h-14"
+                      autoFocus
+                      disabled={isGameOver}
                     />
-                  ))}
+                  </form>
                 </div>
-              )}
-
-              {/* Accuracy in top right */}
-              {sessionState.totalAttempts > 0 && (
-                <div className="absolute top-4 right-4 text-sm text-muted-foreground">
-                  {sessionState.totalCorrect} / {sessionState.totalAttempts}
-                </div>
-              )}
-              <div className="space-y-6 text-center">
-                <div className="flex items-center justify-center flex-wrap">
-                  {currentPrompt.map((kana, index) => (
-                    <Kbd key={index} className="text-5xl font-bold py-2">
-                      {kana.character}
-                    </Kbd>
-                  ))}
-                </div>
-                <form onSubmit={handleSubmit} className="flex justify-center">
-                  <Input
-                    ref={inputRef}
-                    type="text"
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="max-w-2xl text-2xl h-14"
-                    autoFocus
-                    disabled={isGameOver}
-                  />
-                </form>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Game Over Screen */}
       {isGameOver && (
         <GameOver
           enemiesDefeated={sessionState.enemiesDefeated}
+          totalCorrect={sessionState.totalCorrect}
+          totalAttempts={sessionState.totalAttempts}
           onRestart={handleRestart}
         />
       )}

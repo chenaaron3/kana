@@ -3,19 +3,28 @@ import { Card, CardContent } from '~/components/ui/8bit/card';
 
 interface GameOverProps {
     enemiesDefeated: number;
+    totalCorrect: number;
+    totalAttempts: number;
     onRestart: () => void;
 }
 
-export default function GameOver({ enemiesDefeated, onRestart }: GameOverProps) {
+export default function GameOver({ enemiesDefeated, totalCorrect, totalAttempts, onRestart }: GameOverProps) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <Card className="w-full max-w-md">
                 <CardContent className="pt-6">
                     <div className="space-y-6 text-center">
-                        <h1 className="text-4xl font-bold text-red-600">Game Over</h1>
-                        <p className="text-xl text-muted-foreground">
-                            You defeated {enemiesDefeated} {enemiesDefeated === 1 ? 'enemy' : 'enemies'}
-                        </p>
+                        <h1 className="text-4xl font-bold text-red-600 retro">Game Over</h1>
+                        <div className="space-y-2">
+                            <p className="text-xl text-muted-foreground">
+                                You defeated {enemiesDefeated} {enemiesDefeated === 1 ? 'enemy' : 'enemies'}
+                            </p>
+                            {totalAttempts > 0 && (
+                                <p className="text-sm text-muted-foreground">
+                                    Accuracy: {totalCorrect} / {totalAttempts}
+                                </p>
+                            )}
+                        </div>
                         <Button onClick={onRestart} className="w-full" size="lg">
                             Restart Game
                         </Button>
