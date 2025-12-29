@@ -16,7 +16,6 @@ export interface KanaCard {
 export interface EnemyStats {
   health: number; // 5-20
   attack: number; // Number of attack attempts before enemy attacks
-  defense: number; // Fixed length for defense prompt
 }
 
 export interface Session {

@@ -32,7 +32,6 @@ function generateNewEnemy(): EnemyStats {
   return {
     health: Math.floor(Math.random() * 6) + 5, // 5-10
     attack: Math.floor(Math.random() * 3) + 2, // 2-4
-    defense: Math.floor(Math.random() * 3) + 1, // 1-3
   };
 }
 
@@ -95,15 +94,71 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     return undefined;
   };
 
+  // Get bottom N kana by accuracy (lowest accuracy = hardest)
+  const getBottomKanaByAccuracy = (
+    kanaList: KanaCharacter[],
+    cards: Record<string, KanaCard>,
+    count: number = 10
+  ): KanaCharacter[] => {
+    // Calculate accuracy for each kana
+    const kanaWithAccuracy = kanaList.map((kana) => {
+      const card = cards[kana.id];
+      const totalShown = card?.totalShown ?? 0;
+      const totalCorrect = card?.totalCorrect ?? 0;
+      // Calculate accuracy (0.0 to 1.0), default to 0.0 for new kana
+      const accuracy = totalShown > 0 ? totalCorrect / totalShown : 0.0;
+      return { kana, accuracy };
+    });
+
+    // Sort by accuracy (lowest first = hardest)
+    kanaWithAccuracy.sort((a, b) => a.accuracy - b.accuracy);
+
+    // Take bottom N (or all if less than N)
+    const bottomKana = kanaWithAccuracy
+      .slice(0, Math.min(count, kanaWithAccuracy.length))
+      .map((item) => item.kana);
+
+    return bottomKana;
+  };
+
   // Generate prompt based on type and current state
   // Returns KanaCharacter[] regardless of whether word mode or individual kana mode is used
   const generatePrompt = (
     type: PromptType,
     cards: Record<string, KanaCard>
   ): KanaCharacter[] => {
+    // Defense prompts: use hardest kana (bottom 10 by accuracy)
+    if (type === 'defense') {
+      setCurrentWordString(null); // Defense uses individual kana mode
+
+      const bottomKana = getBottomKanaByAccuracy(availableKana, cards, 10);
+      if (bottomKana.length === 0) {
+        // Fallback if no kana available
+        return availableKana.slice(0, Math.min(3, availableKana.length));
+      }
+
+      const promptLength = 3;
+      const newPrompt: KanaCharacter[] = [];
+      const usedIds = new Set<string>();
+
+      for (let i = 0; i < promptLength && newPrompt.length < bottomKana.length; i++) {
+        const remaining = bottomKana.filter((k) => !usedIds.has(k.id));
+        if (remaining.length === 0) break;
+
+        // Randomly select from bottom kana
+        const randomIndex = Math.floor(Math.random() * remaining.length);
+        const selected = remaining[randomIndex];
+        if (selected) {
+          newPrompt.push(selected);
+          usedIds.add(selected.id);
+        }
+      }
+      return newPrompt;
+    }
+
+    // Attack prompts: use normal logic
     // Try word mode first
     const wordKana = getNextWord(availableKana, cards);
-
     if (wordKana && wordKana.length > 0) {
       // Word mode - store the word string for translation lookup
       const wordString = wordKana.map((k) => k.character).join('');
@@ -114,11 +169,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     // Individual kana mode - clear word string
     setCurrentWordString(null);
 
-    const promptLength =
-      type === 'attack'
-        ? 1 + sessionState.enemiesDefeated // Starts at 1, increases by 1 per enemy defeated
-        : sessionState.enemiesDefeated + currentEnemy.defense; // Fixed length from enemy stat
-
+    const promptLength = 3;
     const newPrompt: KanaCharacter[] = [];
     const usedIds = new Set<string>();
 

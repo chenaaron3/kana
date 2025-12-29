@@ -192,8 +192,34 @@ export function getWordBankRatio(availableKana: KanaCharacter[]): {
 }
 
 /**
+ * Check if a word contains at least one new kana (kana without a card).
+ */
+function hasNewKana(
+  wordKana: KanaCharacter[],
+  availableKana: KanaCharacter[],
+  kanaCards: Record<string, KanaCard>
+): boolean {
+  for (const kanaChar of wordKana) {
+    // Skip small tsu and other modifiers
+    if (kanaChar.character === "っ" || kanaChar.character === "ッ") {
+      continue;
+    }
+
+    const kana = availableKana.find((k) => k.character === kanaChar.character);
+    if (kana) {
+      // Check if this kana is new (no card exists)
+      if (!kanaCards[kana.id]) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * Get the next word to use in the quiz, using weighted selection.
  * Returns null if < 100 words are available (fallback to individual kana).
+ * Balances new vs existing kana similar to getNextKana.
  */
 export function getNextWord(
   availableKana: KanaCharacter[],
@@ -226,13 +252,43 @@ export function getNextWord(
     return null;
   }
 
-  // Calculate weights for all words
-  const weightedWords: Array<{ word: KanaCharacter[]; weight: number }> = [];
+  // Separate words into categories for balanced selection (similar to getNextKana)
+  const wordsWithNewKana: Array<{ word: KanaCharacter[]; weight: number }> = [];
+  const wordsWithOnlyExistingKana: Array<{
+    word: KanaCharacter[];
+    weight: number;
+  }> = [];
+
+  // Calculate weights and categorize words
   for (const wordKana of wordsToSelectFrom) {
     const weight = calculateWordWeight(wordKana, availableKana, kanaCards, now);
     if (weight > 0) {
-      weightedWords.push({ word: wordKana, weight });
+      if (hasNewKana(wordKana, availableKana, kanaCards)) {
+        wordsWithNewKana.push({ word: wordKana, weight });
+      } else {
+        wordsWithOnlyExistingKana.push({ word: wordKana, weight });
+      }
     }
+  }
+
+  // Hybrid approach: Mix words with new kana (50%) with words with only existing kana (50%)
+  // This ensures words containing new kana always get some exposure
+  let weightedWords: Array<{ word: KanaCharacter[]; weight: number }>;
+
+  if (wordsWithNewKana.length > 0 && wordsWithOnlyExistingKana.length > 0) {
+    // Both pools exist - mix them 50% new, 50% existing
+    const useNewKanaPool = Math.random() < 0.5;
+    weightedWords = useNewKanaPool
+      ? wordsWithNewKana
+      : wordsWithOnlyExistingKana;
+  } else if (wordsWithOnlyExistingKana.length > 0) {
+    // Only words with existing kana exist
+    weightedWords = wordsWithOnlyExistingKana;
+  } else if (wordsWithNewKana.length > 0) {
+    // Only words with new kana exist
+    weightedWords = wordsWithNewKana;
+  } else {
+    return null;
   }
 
   if (weightedWords.length === 0) {
