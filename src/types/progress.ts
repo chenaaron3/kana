@@ -31,4 +31,5 @@ export interface PreviousAnswer {
   kana: KanaCharacter[]; // All characters in the current prompt
   userInput: string; // The user's entire input
   isCorrect: boolean; // Whether all answers were correct
+  translation?: string; // English translation (for words)
 }

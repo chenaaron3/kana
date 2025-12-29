@@ -48,7 +48,7 @@ export function initializeKanaCard(kanaId: string): KanaCard {
  *     - Low accuracy + high total shown = higher weight (high confidence difficult)
  * - New cards: competitive weight to ensure exposure
  */
-function calculateWeight(
+export function calculateWeight(
   kanaCard: KanaCard | null,
   now: Date = new Date()
 ): number {

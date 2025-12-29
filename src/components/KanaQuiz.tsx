@@ -5,9 +5,12 @@ import { Button } from '~/components/ui/8bit/button';
 import { Card, CardContent } from '~/components/ui/8bit/card';
 import { Input } from '~/components/ui/8bit/input';
 import { Kbd } from '~/components/ui/8bit/kbd';
+import hiraganaWords from '~/data/hiragana.json';
 import { allKanaCharacters } from '~/data/kana';
+import katakanaWords from '~/data/katakana.json';
 import { getNextKana, initializeKanaCard, reviewKana } from '~/utils/fsrs';
 import { loadProgress, saveProgress } from '~/utils/storage';
+import { getNextWord } from '~/utils/wordBank';
 
 import Enemy from './Enemy';
 import GameOver from './GameOver';
@@ -63,6 +66,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const [currentProjectileType, setCurrentProjectileType] = useState<'basic' | 'special'>('basic'); // Current projectile type
 
   const [currentPrompt, setCurrentPrompt] = useState<KanaCharacter[]>([]);
+  const [currentWordString, setCurrentWordString] = useState<string | null>(null);
   const [userInput, setUserInput] = useState("");
   const [previousAnswer, setPreviousAnswer] = useState<PreviousAnswer | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -74,11 +78,46 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     sessionState.selectedKanaIds.includes(k.id),
   );
 
+  // Helper function to get translation for a word
+  const getTranslation = (wordKana: KanaCharacter[]): string | undefined => {
+    const wordString = wordKana.map((k) => k.character).join('');
+
+    // Check hiragana words
+    if (wordString in hiraganaWords) {
+      return (hiraganaWords as Record<string, string>)[wordString];
+    }
+
+    // Check katakana words
+    if (wordString in katakanaWords) {
+      return (katakanaWords as Record<string, string>)[wordString];
+    }
+
+    return undefined;
+  };
+
   // Generate prompt based on type and current state
-  const generatePrompt = (type: PromptType, cards: Record<string, KanaCard>): KanaCharacter[] => {
-    const promptLength = type === 'attack'
-      ? 1 + sessionState.enemiesDefeated // Starts at 1, increases by 1 per enemy defeated
-      : sessionState.enemiesDefeated + currentEnemy.defense; // Fixed length from enemy stat
+  // Returns KanaCharacter[] regardless of whether word mode or individual kana mode is used
+  const generatePrompt = (
+    type: PromptType,
+    cards: Record<string, KanaCard>
+  ): KanaCharacter[] => {
+    // Try word mode first
+    const wordKana = getNextWord(availableKana, cards);
+
+    if (wordKana && wordKana.length > 0) {
+      // Word mode - store the word string for translation lookup
+      const wordString = wordKana.map((k) => k.character).join('');
+      setCurrentWordString(wordString);
+      return wordKana;
+    }
+
+    // Individual kana mode - clear word string
+    setCurrentWordString(null);
+
+    const promptLength =
+      type === 'attack'
+        ? 1 + sessionState.enemiesDefeated // Starts at 1, increases by 1 per enemy defeated
+        : sessionState.enemiesDefeated + currentEnemy.defense; // Fixed length from enemy stat
 
     const newPrompt: KanaCharacter[] = [];
     const usedIds = new Set<string>();
@@ -110,9 +149,9 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     if (promptAttempt > 0 && promptAttempt % currentEnemy.attack === 0) {
       promptType = 'defense';
     }
-    const newPrompt = generatePrompt(promptType, kanaCards);
+    const prompt = generatePrompt(promptType, kanaCards);
     setPromptType(promptType);
-    setCurrentPrompt(newPrompt);
+    setCurrentPrompt(prompt);
     setUserInput("");
     setPromptStartTime(Date.now()); // Reset timer when new prompt is generated
   }, [promptAttempt, currentEnemy]);
@@ -190,11 +229,10 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     const normalizedInput = input.trim().toLowerCase();
     if (!normalizedInput) return;
 
-    // Try to match the input string against all romaji in sequence
-    let inputIndex = 0;
     let allCorrect = true;
     let correctCount = 0;
     const updatedKanaCards: Record<string, KanaCard> = {};
+    let inputIndex = 0;
 
     // Check each kana by trying to match its romaji from current input position
     currentPrompt.forEach((kana) => {
@@ -246,11 +284,17 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     const newTotalCorrect = sessionState.totalCorrect + correctCount;
     const newTotalAttempts = sessionState.totalAttempts + currentPrompt.length;
 
+    // Get translation if this was a word
+    const translation = currentWordString
+      ? getTranslation(currentPrompt)
+      : undefined;
+
     // Store the previous answer
     setPreviousAnswer({
       kana: currentPrompt,
       userInput: input,
       isCorrect: allCorrect,
+      translation,
     });
 
     // Update kanaCards state and save to persistent storage
@@ -372,6 +416,11 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                     <span className="text-2xl">✓</span>
                   )}
                 </div>
+                {previousAnswer.isCorrect && previousAnswer.translation && (
+                  <div className="text-sm text-white/80">
+                    {previousAnswer.translation}
+                  </div>
+                )}
                 {!previousAnswer.isCorrect && (
                   <div className="text-sm text-white">
                     You typed: <span className="font-mono font-semibold">{previousAnswer.userInput}</span>

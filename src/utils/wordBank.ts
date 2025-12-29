@@ -1,0 +1,274 @@
+import hiraganaWords from '~/data/hiragana.json';
+import { allKanaCharacters } from '~/data/kana';
+import katakanaWords from '~/data/katakana.json';
+
+import { calculateWeight } from './fsrs';
+
+import type { KanaCharacter } from "~/data/kana";
+import type { KanaCard } from "~/types/progress";
+
+// Cache for available words to avoid recalculating
+let cachedAvailableKanaIds: string[] = [];
+let cachedAvailableWords: {
+  hiragana: KanaCharacter[][];
+  katakana: KanaCharacter[][];
+} = {
+  hiragana: [],
+  katakana: [],
+};
+
+// Create a map for faster lookup
+const kanaCharacterMap = new Map<string, KanaCharacter>();
+allKanaCharacters.forEach((k) => {
+  kanaCharacterMap.set(k.character, k);
+});
+
+// Pre-process all words at build time into KanaCharacter[][] arrays
+const ALL_HIRAGANA_WORDS: KanaCharacter[][] = Object.keys(hiraganaWords)
+  .map((word) => splitWordIntoKana(word))
+  .filter((wordKana) => wordKana.length > 0);
+
+const ALL_KATAKANA_WORDS: KanaCharacter[][] = Object.keys(katakanaWords)
+  .map((word) => splitWordIntoKana(word))
+  .filter((wordKana) => wordKana.length > 0);
+
+/**
+ * Split a Japanese word into individual kana characters.
+ * Handles combinations (きゃ, しゅ, etc.) by matching longest combinations first.
+ * Returns KanaCharacter objects (skips characters not in the database like っ).
+ */
+export function splitWordIntoKana(word: string): KanaCharacter[] {
+  const result: KanaCharacter[] = [];
+  let i = 0;
+
+  // Get all kana characters strings sorted by length (longest first) for greedy matching
+  const allKanaStrings = Array.from(kanaCharacterMap.keys()).sort(
+    (a, b) => b.length - a.length
+  );
+
+  while (i < word.length) {
+    let matched = false;
+
+    // Try to match longest kana first
+    for (const kanaStr of allKanaStrings) {
+      if (word.substring(i, i + kanaStr.length) === kanaStr) {
+        const kanaChar = kanaCharacterMap.get(kanaStr);
+        if (kanaChar) {
+          result.push(kanaChar);
+        }
+        i += kanaStr.length;
+        matched = true;
+        break;
+      }
+    }
+
+    // If no match found (e.g. small tsu っ, or rare chars), skip it
+    if (!matched) {
+      i++;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Check if a word (as KanaCharacter[]) can be formed from available kana characters.
+ * Note: っ (small tsu) and other modifiers may not be in availableKana,
+ * but words containing them are still valid if all other characters match.
+ */
+export function canFormWord(
+  wordKana: KanaCharacter[],
+  availableKana: KanaCharacter[]
+): boolean {
+  const availableChars = new Set(availableKana.map((k) => k.character));
+
+  for (const kana of wordKana) {
+    // Skip small tsu (っ) and other modifiers that might not be selectable
+    // These are valid in words even if not explicitly selected
+    if (kana.character === "っ" || kana.character === "ッ") {
+      continue;
+    }
+
+    // Check if the character exists in the available set
+    if (!availableChars.has(kana.character)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Filter words from word banks based on available kana.
+ * Returns separate arrays for hiragana and katakana words as KanaCharacter arrays.
+ */
+export function getAvailableWords(availableKana: KanaCharacter[]): {
+  hiragana: KanaCharacter[][];
+  katakana: KanaCharacter[][];
+} {
+  // Check if we can use cache
+  const currentKanaIds = availableKana
+    .map((k) => k.id)
+    .sort()
+    .join(",");
+  if (
+    cachedAvailableKanaIds.length === availableKana.length &&
+    cachedAvailableKanaIds.join(",") === currentKanaIds
+  ) {
+    return cachedAvailableWords;
+  }
+
+  // Filter from pre-processed word arrays
+  const hiraganaWordsList = ALL_HIRAGANA_WORDS.filter((wordKana) =>
+    canFormWord(wordKana, availableKana)
+  );
+
+  const katakanaWordsList = ALL_KATAKANA_WORDS.filter((wordKana) =>
+    canFormWord(wordKana, availableKana)
+  );
+
+  // Update cache
+  cachedAvailableKanaIds = availableKana.map((k) => k.id).sort();
+  cachedAvailableWords = {
+    hiragana: hiraganaWordsList,
+    katakana: katakanaWordsList,
+  };
+
+  return cachedAvailableWords;
+}
+
+/**
+ * Calculate the weight of a word based on the average weight of its constituent kana.
+ */
+export function calculateWordWeight(
+  wordKana: KanaCharacter[],
+  availableKana: KanaCharacter[],
+  kanaCards: Record<string, KanaCard>,
+  now: Date = new Date()
+): number {
+  const weights: number[] = [];
+
+  for (const kanaChar of wordKana) {
+    // Skip small tsu and other modifiers
+    if (kanaChar.character === "っ" || kanaChar.character === "ッ") {
+      continue;
+    }
+
+    const kana = availableKana.find((k) => k.character === kanaChar.character);
+    if (kana) {
+      const card = kanaCards[kana.id];
+      const weight = calculateWeight(card ?? null, now);
+      weights.push(weight);
+    }
+  }
+
+  if (weights.length === 0) {
+    return 0;
+  }
+
+  // Return average weight
+  return weights.reduce((sum, w) => sum + w, 0) / weights.length;
+}
+
+/**
+ * Get the ratio of hiragana to katakana in available kana.
+ */
+export function getWordBankRatio(availableKana: KanaCharacter[]): {
+  hiragana: number;
+  katakana: number;
+} {
+  const hiraganaCount = availableKana.filter(
+    (k) => k.type === "hiragana"
+  ).length;
+  const katakanaCount = availableKana.filter(
+    (k) => k.type === "katakana"
+  ).length;
+  const total = hiraganaCount + katakanaCount;
+
+  return {
+    hiragana: total > 0 ? hiraganaCount / total : 0,
+    katakana: total > 0 ? katakanaCount / total : 0,
+  };
+}
+
+/**
+ * Get the next word to use in the quiz, using weighted selection.
+ * Returns null if < 100 words are available (fallback to individual kana).
+ */
+export function getNextWord(
+  availableKana: KanaCharacter[],
+  kanaCards: Record<string, KanaCard>,
+  now: Date = new Date()
+): KanaCharacter[] | null {
+  const availableWords = getAvailableWords(availableKana);
+  const totalWords =
+    availableWords.hiragana.length + availableWords.katakana.length;
+
+  // Check threshold: need at least 100 words
+  if (totalWords < 100) {
+    return null;
+  }
+
+  // Calculate ratio for hiragana/katakana selection
+  const ratio = getWordBankRatio(availableKana);
+  const useHiragana = Math.random() < ratio.hiragana;
+
+  // Select word bank based on ratio
+  let wordsToSelectFrom: KanaCharacter[][] = [];
+  if (useHiragana && availableWords.hiragana.length > 0) {
+    wordsToSelectFrom = availableWords.hiragana;
+  } else if (availableWords.katakana.length > 0) {
+    wordsToSelectFrom = availableWords.katakana;
+  } else if (availableWords.hiragana.length > 0) {
+    // Fallback to hiragana if katakana is empty
+    wordsToSelectFrom = availableWords.hiragana;
+  } else {
+    return null;
+  }
+
+  // Calculate weights for all words
+  const weightedWords: Array<{ word: KanaCharacter[]; weight: number }> = [];
+  for (const wordKana of wordsToSelectFrom) {
+    const weight = calculateWordWeight(wordKana, availableKana, kanaCards, now);
+    if (weight > 0) {
+      weightedWords.push({ word: wordKana, weight });
+    }
+  }
+
+  if (weightedWords.length === 0) {
+    return null;
+  }
+
+  // Calculate total weight
+  const totalWeight = weightedWords.reduce((sum, item) => sum + item.weight, 0);
+
+  if (totalWeight === 0) {
+    // Fallback: equal probability for all
+    const randomIndex = Math.floor(Math.random() * weightedWords.length);
+    return weightedWords[randomIndex]!.word;
+  }
+
+  // Weighted random selection using binary search
+  const cumulativeWeights: number[] = [];
+  let cumulative = 0;
+  for (const item of weightedWords) {
+    cumulative += item.weight;
+    cumulativeWeights.push(cumulative);
+  }
+
+  // Binary search for O(log n) selection
+  const random = Math.random() * totalWeight;
+  let left = 0;
+  let right = cumulativeWeights.length - 1;
+
+  while (left < right) {
+    const mid = Math.floor((left + right) / 2);
+    if (cumulativeWeights[mid]! < random) {
+      left = mid + 1;
+    } else {
+      right = mid;
+    }
+  }
+
+  return weightedWords[left]!.word;
+}
