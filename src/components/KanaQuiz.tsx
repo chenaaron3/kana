@@ -407,7 +407,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
 
             {/* Previous Answer - Absolutely centered */}
             {previousAnswer && (
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2">
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
                 <div className="flex items-center gap-2 text-white">
                   <span className="text-xl font-semibold">
                     {previousAnswer.kana.map(k => k.character).join('')} = {previousAnswer.kana.map(k => k.romaji[0]).join('')}
@@ -418,7 +418,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                 </div>
                 {previousAnswer.isCorrect && previousAnswer.translation && (
                   <div className="text-sm text-white/80">
-                    {previousAnswer.translation}
+                    Translation: {previousAnswer.translation}
                   </div>
                 )}
                 {!previousAnswer.isCorrect && (
