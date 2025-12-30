@@ -14,9 +14,9 @@ export default function GameOver({ enemiesDefeated, totalCorrect, totalAttempts,
             <Card className="w-full max-w-md">
                 <CardContent className="pt-6">
                     <div className="space-y-6 text-center">
-                        <h1 className="text-4xl font-bold text-red-600 retro">Game Over</h1>
+                        <h1 className="text-2xl md:text-4xl font-bold text-red-600 retro">Game Over</h1>
                         <div className="space-y-2">
-                            <p className="text-xl text-muted-foreground">
+                            <p className="text-base md:text-xl text-muted-foreground">
                                 You defeated {enemiesDefeated} {enemiesDefeated === 1 ? 'enemy' : 'enemies'}
                             </p>
                             {totalAttempts > 0 && (

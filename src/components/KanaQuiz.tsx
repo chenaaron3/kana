@@ -460,20 +460,20 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
             {previousAnswer && (
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
                 <div className="flex items-center gap-2 text-white">
-                  <span className="text-xl font-semibold">
+                  <span className="text-base md:text-xl font-semibold">
                     {previousAnswer.kana.map(k => k.character).join('')} = {previousAnswer.kana.map(k => k.romaji[0]).join('')}
                   </span>
                   {previousAnswer.isCorrect && (
-                    <span className="text-2xl">✓</span>
+                    <span className="text-lg md:text-2xl">✓</span>
                   )}
                 </div>
                 {previousAnswer.isCorrect && previousAnswer.translation && (
-                  <div className="text-sm text-white/80">
+                  <div className="text-xs md:text-sm text-white/80">
                     Translation: {previousAnswer.translation}
                   </div>
                 )}
                 {!previousAnswer.isCorrect && (
-                  <div className="text-sm text-white">
+                  <div className="text-xs md:text-sm text-white">
                     You typed: <span className="font-mono font-semibold">{previousAnswer.userInput}</span>
                   </div>
                 )}
@@ -516,8 +516,8 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
             </div>
           </div>
 
-          {/* Current Prompt - centered */}
-          <div className="w-full max-w-2xl px-4 shrink-0 mx-auto">
+          {/* Current Prompt - centered, positioned for keyboard */}
+          <div className="w-full max-w-2xl px-4 shrink-0 mx-auto pb-4 md:pb-0">
             <Card>
               <CardContent className={`relative pt-6 ${enemyWillDie
                 ? 'bg-blue-100/60'
@@ -551,12 +551,12 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                 <div className="space-y-6 text-center">
                   <div className="flex items-center justify-center flex-wrap min-h-[30px]">
                     {enemyWillDie ? (
-                      <Kbd className="text-3xl font-bold py-2">
+                      <Kbd className="text-xl md:text-3xl font-bold py-2">
                         DEFEATED
                       </Kbd>
                     ) : (
                       currentPrompt.map((kana, index) => (
-                        <Kbd key={index} className="text-5xl font-bold py-2">
+                        <Kbd key={index} className="text-3xl md:text-5xl font-bold py-2">
                           {kana.character}
                         </Kbd>
                       ))
@@ -569,7 +569,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                       value={userInput}
                       onChange={(e) => setUserInput(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      className="max-w-2xl text-2xl h-14"
+                      className="max-w-2xl text-lg md:text-2xl h-12 md:h-14"
                       autoFocus
                       disabled={isGameOver || enemyDefeated || enemyWillDie}
                     />

@@ -1,13 +1,13 @@
 import type * as React from "react";
 
 import type * as CheckboxPrimitive from "@radix-ui/react-checkbox";
-import { type VariantProps, cva } from "class-variance-authority";
+import './styles/retro.css';
 
-import { cn } from "~/lib/utils";
+import { cva } from 'class-variance-authority';
+import { Checkbox as ShadcnCheckbox } from '~/components/ui/checkbox';
+import { cn } from '~/lib/utils';
 
-import { Checkbox as ShadcnCheckbox } from "~/components/ui/checkbox";
-
-import "./styles/retro.css";
+import type { VariantProps } from 'class-variance-authority';
 
 export const checkboxVariants = cva("", {
   variants: {
@@ -23,7 +23,7 @@ export const checkboxVariants = cva("", {
 
 export interface BitCheckboxProps
   extends React.ComponentProps<typeof CheckboxPrimitive.Root>,
-    VariantProps<typeof checkboxVariants> {
+  VariantProps<typeof checkboxVariants> {
   asChild?: boolean;
 }
 
