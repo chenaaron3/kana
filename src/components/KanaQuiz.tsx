@@ -155,8 +155,8 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
         return availableKana.slice(0, Math.min(3, availableKana.length));
       }
 
-      // Max 5 promps for defense, scaling by enemies
-      const promptLength = Math.min(sessionState.enemiesDefeated + 1, 5);
+      // Max 3 promps for defense, scaling by enemies
+      const promptLength = Math.min(sessionState.enemiesDefeated + 1, 3);
       // Shuffle and take sample
       const shuffled = [...bottomKana].sort(() => Math.random() - 0.5);
       return shuffled.slice(0, Math.min(promptLength, shuffled.length));
