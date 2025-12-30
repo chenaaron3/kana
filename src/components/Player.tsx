@@ -1,4 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import ManaBar from '~/components/ui/8bit/mana-bar';
+import { getComboConfig } from '~/constants';
 
 import Fire from './Fire';
 import FloatingText from './FloatingText';
@@ -19,6 +21,7 @@ interface PlayerProps {
     enemySpriteRef?: React.RefObject<HTMLElement | null>;
     projectileType?: 'basic' | 'special'; // Type of projectile to use
     combo?: number; // Combo count for fire effect
+    manaTimeRemaining?: number; // Time remaining in milliseconds
 }
 
 // Import all frame images using Vite's glob import
@@ -57,7 +60,7 @@ const ANIMATION_CONFIG = {
     heal: { frames: healFrames.length, fps: 10 },
 };
 
-const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpriteRef, projectileType = 'basic', combo = 0 }, ref) => {
+const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpriteRef, projectileType = 'basic', combo = 0, manaTimeRemaining = 0 }, ref) => {
     const [state, setState] = useState<PlayerState>('idle');
     const [currentFrame, setCurrentFrame] = useState(0);
     const [showProjectile, setShowProjectile] = useState(false);
@@ -164,9 +167,21 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpri
     }, [state, config.fps, config.frames]);
 
     const currentImage = getCurrentFrameImage();
+    const comboConfig = getComboConfig(combo);
+    const hasEffect = comboConfig.multiplier > 0;
+    const manaPercentage = manaTimeRemaining ? (manaTimeRemaining / comboConfig.timerMs) * 100 : 0;
 
     return (
-        <div ref={containerRef} className="flex flex-col items-center justify-end relative w-full h-full">
+        <div ref={containerRef} className="flex flex-col items-center gap-2 justify-end relative w-full h-full">
+            {/* Mana Bar - positioned absolutely */}
+            {combo > 0 && (
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[150px]">
+                    <ManaBar
+                        value={manaPercentage}
+                        className="w-full"
+                    />
+                </div>
+            )}
             <div
                 className={`relative transition-all duration-300 ${isActive
                     ? 'drop-shadow-[0_0_20px_rgba(59,130,246,0.8)]'
@@ -181,7 +196,7 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpri
                 }}
             >
                 {/* Fire Effect - positioned relative to player sprite */}
-                {combo >= 3 && <Fire combo={combo} />}
+                {hasEffect && <Fire combo={combo} />}
                 <img
                     ref={spriteRef}
                     src={currentImage}
