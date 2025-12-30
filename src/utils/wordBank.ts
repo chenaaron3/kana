@@ -1,8 +1,8 @@
-import hiraganaWords from '~/data/hiragana.json';
-import { allKanaCharacters } from '~/data/kana';
-import katakanaWords from '~/data/katakana.json';
+import hiraganaWords from "~/data/hiragana.json";
+import { allKanaCharacters } from "~/data/kana";
+import katakanaWords from "~/data/katakana.json";
 
-import { calculateWeight } from './fsrs';
+import { calculateWeight } from "./fsrs";
 
 import type { KanaCharacter } from "~/data/kana";
 import type { KanaCard } from "~/types/progress";
@@ -217,6 +217,25 @@ function hasNewKana(
 }
 
 /**
+ * Check if a word contains at least one overdue kana (kana with a card that is overdue).
+ */
+function hasOverdueKana(
+  wordKana: KanaCharacter[],
+  kanaCards: Record<string, KanaCard>,
+  now: Date
+): boolean {
+  return wordKana.some((kanaChar) => {
+    // Skip small tsu and other modifiers
+    if (kanaChar.character === "っ" || kanaChar.character === "ッ") {
+      return false;
+    }
+
+    const card = kanaCards[kanaChar.id];
+    return card?.card.due && card.card.due < now;
+  });
+}
+
+/**
  * Get the next word to use in the quiz, using weighted selection.
  * Returns null if < 100 words are available (fallback to individual kana).
  * Balances new vs existing kana similar to getNextKana.
@@ -224,11 +243,19 @@ function hasNewKana(
 export function getNextWord(
   availableKana: KanaCharacter[],
   kanaCards: Record<string, KanaCard>,
-  now: Date = new Date()
+  maxCharacters: number = 2
 ): KanaCharacter[] | null {
+  const now = new Date();
   const availableWords = getAvailableWords(availableKana);
-  const totalWords =
-    availableWords.hiragana.length + availableWords.katakana.length;
+  const filteredHiragana = availableWords.hiragana.filter(
+    (word) => word.length <= maxCharacters
+  );
+  const filteredKatakana = availableWords.katakana.filter(
+    (word) => word.length <= maxCharacters
+  );
+  console.log(filteredHiragana.length, filteredKatakana.length);
+  console.log(maxCharacters);
+  const totalWords = filteredHiragana.length + filteredKatakana.length;
 
   // Check threshold: need at least 100 words
   if (totalWords < 100) {
@@ -241,54 +268,58 @@ export function getNextWord(
 
   // Select word bank based on ratio
   let wordsToSelectFrom: KanaCharacter[][] = [];
-  if (useHiragana && availableWords.hiragana.length > 0) {
-    wordsToSelectFrom = availableWords.hiragana;
+  if (useHiragana && filteredHiragana.length > 0) {
+    wordsToSelectFrom = filteredHiragana;
   } else if (availableWords.katakana.length > 0) {
-    wordsToSelectFrom = availableWords.katakana;
-  } else if (availableWords.hiragana.length > 0) {
+    wordsToSelectFrom = filteredKatakana;
+  } else if (filteredHiragana.length > 0) {
     // Fallback to hiragana if katakana is empty
-    wordsToSelectFrom = availableWords.hiragana;
+    wordsToSelectFrom = filteredHiragana;
   } else {
     return null;
   }
 
   // Separate words into categories for balanced selection (similar to getNextKana)
   const wordsWithNewKana: Array<{ word: KanaCharacter[]; weight: number }> = [];
-  const wordsWithOnlyExistingKana: Array<{
+  const wordsWithOverdueKana: Array<{
+    word: KanaCharacter[];
+    weight: number;
+  }> = [];
+  const allWords: Array<{
     word: KanaCharacter[];
     weight: number;
   }> = [];
 
   // Calculate weights and categorize words
+  // Words can be in multiple categories (e.g., both new and overdue)
   for (const wordKana of wordsToSelectFrom) {
     const weight = calculateWordWeight(wordKana, availableKana, kanaCards, now);
     if (weight > 0) {
       if (hasNewKana(wordKana, availableKana, kanaCards)) {
         wordsWithNewKana.push({ word: wordKana, weight });
-      } else {
-        wordsWithOnlyExistingKana.push({ word: wordKana, weight });
       }
+      if (hasOverdueKana(wordKana, kanaCards, now)) {
+        wordsWithOverdueKana.push({ word: wordKana, weight });
+      }
+      allWords.push({ word: wordKana, weight });
     }
   }
 
-  // Hybrid approach: Mix words with new kana (50%) with words with only existing kana (50%)
-  // This ensures words containing new kana always get some exposure
+  // Selection strategy: 1/3 chance for each bucket (new/overdue/all)
+  // If new or overdue are empty, they fall back to all
+  const bucketRandom = Math.random();
   let weightedWords: Array<{ word: KanaCharacter[]; weight: number }>;
 
-  if (wordsWithNewKana.length > 0 && wordsWithOnlyExistingKana.length > 0) {
-    // Both pools exist - mix them 50% new, 50% existing
-    const useNewKanaPool = Math.random() < 0.5;
-    weightedWords = useNewKanaPool
-      ? wordsWithNewKana
-      : wordsWithOnlyExistingKana;
-  } else if (wordsWithOnlyExistingKana.length > 0) {
-    // Only words with existing kana exist
-    weightedWords = wordsWithOnlyExistingKana;
-  } else if (wordsWithNewKana.length > 0) {
-    // Only words with new kana exist
-    weightedWords = wordsWithNewKana;
+  if (bucketRandom < 1 / 3) {
+    // 1/3 chance: new kana (fallback to all if empty)
+    weightedWords = wordsWithNewKana.length > 0 ? wordsWithNewKana : allWords;
+  } else if (bucketRandom < 2 / 3) {
+    // 1/3 chance: overdue kana (fallback to all if empty)
+    weightedWords =
+      wordsWithOverdueKana.length > 0 ? wordsWithOverdueKana : allWords;
   } else {
-    return null;
+    // 1/3 chance: all words
+    weightedWords = allWords;
   }
 
   if (weightedWords.length === 0) {

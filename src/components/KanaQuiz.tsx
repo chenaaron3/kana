@@ -60,6 +60,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const [promptType, setPromptType] = useState<PromptType>('attack');
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [enemyDefeated, setEnemyDefeated] = useState<boolean>(false);
+  const [enemyWillDie, setEnemyWillDie] = useState<boolean>(false);
   const [combo, setCombo] = useState<number>(0); // Track consecutive correct answers
   const [promptStartTime, setPromptStartTime] = useState<number>(Date.now()); // Track when prompt was shown
   const [currentProjectileType, setCurrentProjectileType] = useState<'basic' | 'special'>('basic'); // Current projectile type
@@ -137,28 +138,16 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
         return availableKana.slice(0, Math.min(3, availableKana.length));
       }
 
-      const promptLength = 3;
-      const newPrompt: KanaCharacter[] = [];
-      const usedIds = new Set<string>();
-
-      for (let i = 0; i < promptLength && newPrompt.length < bottomKana.length; i++) {
-        const remaining = bottomKana.filter((k) => !usedIds.has(k.id));
-        if (remaining.length === 0) break;
-
-        // Randomly select from bottom kana
-        const randomIndex = Math.floor(Math.random() * remaining.length);
-        const selected = remaining[randomIndex];
-        if (selected) {
-          newPrompt.push(selected);
-          usedIds.add(selected.id);
-        }
-      }
-      return newPrompt;
+      // Max 5 promps for defense, scaling by enemies
+      const promptLength = Math.min(sessionState.enemiesDefeated + 1, 5);
+      // Shuffle and take sample
+      const shuffled = [...bottomKana].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, Math.min(promptLength, shuffled.length));
     }
 
     // Attack prompts: use normal logic
     // Try word mode first
-    const wordKana = getNextWord(availableKana, cards);
+    const wordKana = getNextWord(availableKana, cards, sessionState.enemiesDefeated + 2);
     if (wordKana && wordKana.length > 0) {
       // Word mode - store the word string for translation lookup
       const wordString = wordKana.map((k) => k.character).join('');
@@ -195,6 +184,9 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   // Check if it's time to switch to defense prompt based on promptAttempt
 
   useEffect(() => {
+    // Don't generate prompt if enemy is defeated (during 2-second transition) or will die
+    if (enemyDefeated || enemyWillDie) return;
+
     // Switch when promptAttempt is a multiple of enemy.attack (and > 0)
     let promptType: PromptType = 'attack';
     if (promptAttempt > 0 && promptAttempt % currentEnemy.attack === 0) {
@@ -205,7 +197,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     setCurrentPrompt(prompt);
     setUserInput("");
     setPromptStartTime(Date.now()); // Reset timer when new prompt is generated
-  }, [promptAttempt, currentEnemy]);
+  }, [promptAttempt, enemyDefeated, currentEnemy.attack, sessionState.enemiesDefeated]);
 
   // Clear previousAnswer only when selectedKanaIds changes
   useEffect(() => {
@@ -214,33 +206,41 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
 
   // Auto focus input when prompt changes
   useEffect(() => {
-    if (currentPrompt.length > 0 && inputRef.current && !isGameOver) {
+    if (currentPrompt.length > 0 && inputRef.current && !isGameOver && !enemyDefeated && !enemyWillDie) {
       inputRef.current.focus();
     }
-  }, [currentPrompt, isGameOver]);
+  }, [currentPrompt, isGameOver, enemyDefeated, enemyWillDie]);
 
   // Handle enemy defeat - spawn new enemy
   useEffect(() => {
     if (enemyDefeated) {
       enemyRef.current?.playDie();
 
+      // Clear user input and willDie state during transition (prompt will show "DEFEATED")
+      setUserInput("");
+
+      // Spawn new enemy and increment enemies defeated after 2 seconds
       setTimeout(() => {
-        // Spawn new enemy and increment enemies defeated
         const newEnemy = generateNewEnemy();
         setCurrentEnemy(newEnemy);
         setPromptAttempt(0);
         setPromptType('attack');
         setEnemyDefeated(false);
+        setEnemyWillDie(false);
         setSessionState((prev) => ({
           ...prev,
           enemiesDefeated: prev.enemiesDefeated + 1,
         }));
-      }, 1000);
+      }, 2000);
     }
   }, [enemyDefeated]);
 
 
   const playerAttack = (damage: number = 1, projectileType: 'basic' | 'special' = 'basic') => {
+    // Check if enemy will die from this damage
+    const willDie = enemyRef.current?.willDie(damage) ?? false;
+    setEnemyWillDie(willDie);
+
     setCurrentProjectileType(projectileType);
     playerRef.current?.playAttack();
     setTimeout(() => {
@@ -275,7 +275,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   };
 
   const checkAnswers = (input: string) => {
-    if (currentPrompt.length === 0 || isGameOver) return;
+    if (currentPrompt.length === 0 || isGameOver || enemyDefeated || enemyWillDie) return;
 
     const normalizedInput = input.trim().toLowerCase();
     if (!normalizedInput) return;
@@ -397,7 +397,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
         playerRef.current?.playHeal();
         enemyRef.current?.playMiss(); // Plays miss animation and shows floating text
         // Restore a life if player has less than 3 lives
-        setPlayerLives((prev) => Math.min(3, prev + 1));
+        // setPlayerLives((prev) => Math.min(3, prev + 1));
       } else {
         // Failed defense - reset combo and enemy attacks
         setCombo(0);
@@ -411,7 +411,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (userInput.trim() && currentPrompt.length > 0 && !isGameOver) {
+    if (userInput.trim() && currentPrompt.length > 0 && !isGameOver && !enemyDefeated && !enemyWillDie) {
       checkAnswers(userInput);
     }
   };
@@ -425,16 +425,6 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const handleRestart = () => {
     onBack();
   };
-
-  if (currentPrompt.length === 0) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 text-2xl">Loading...</div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -485,9 +475,9 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
 
       {/* Main Quiz Area */}
       {!isGameOver && (
-        <div className="relative flex-1 flex items-center justify-center min-h-0">
-          {/* Player and Enemy - positioned above prompt */}
-          <div className="absolute top-0 left-0 right-0 flex items-end h-64 px-4 pointer-events-none">
+        <div className="relative flex-1 flex flex-col min-h-0">
+          {/* Player and Enemy - flex grow */}
+          <div className="flex-1 flex items-end px-4 pointer-events-none min-h-0">
             <div className="w-full max-w-4xl mx-auto flex">
               {/* Player on the left half */}
               <div className="flex-1 flex justify-center items-end h-full">
@@ -516,57 +506,79 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
             </div>
           </div>
 
-          {/* Current Prompt - absolutely centered */}
-          <div className="w-full max-w-2xl px-4">
-            <Card>
-              <CardContent className="relative pt-6">
-                {/* Player Lives Display - top left */}
-                {playerLives !== undefined && (
-                  <div className="absolute top-4 left-4 flex gap-1">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <img
-                        key={i}
-                        src={i < playerLives ? fullHeart : emptyHeart}
-                        alt={i < playerLives ? "Full heart" : "Empty heart"}
-                        className="w-6 h-6"
-                        style={{
-                          imageRendering: 'pixelated'
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
+          {/* Current Prompt - centered */}
+          <div className="w-full max-w-2xl px-4 shrink-0 mx-auto">
+            <div className={
+              enemyWillDie
+                ? 'relative border-4 border-blue-600 rounded-lg p-0.5 bg-blue-100/50'
+                : promptType === 'defense'
+                  ? 'relative border-4 border-red-600 rounded-lg p-0.5 bg-red-100/50'
+                  : ''
+            }>
+              <Card>
+                <CardContent className={`relative pt-6 ${enemyWillDie
+                  ? 'bg-blue-50/40'
+                  : promptType === 'defense'
+                    ? 'bg-red-50/40'
+                    : ''
+                  }`}>
+                  {/* Player Lives Display - top left */}
+                  {playerLives !== undefined && (
+                    <div className="absolute top-4 left-4 flex gap-1">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <img
+                          key={i}
+                          src={i < playerLives ? fullHeart : emptyHeart}
+                          alt={i < playerLives ? "Full heart" : "Empty heart"}
+                          className="w-6 h-6"
+                          style={{
+                            imageRendering: 'pixelated'
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
 
-                {/* Accuracy in top right */}
-                {sessionState.totalAttempts > 0 && (
-                  <div className="absolute top-4 right-4 text-sm text-muted-foreground">
-                    {sessionState.totalCorrect} / {sessionState.totalAttempts}
+                  {/* Accuracy in top right */}
+                  {sessionState.totalAttempts > 0 && (
+                    <div className="absolute top-4 right-4 text-sm text-muted-foreground">
+                      {sessionState.totalCorrect} / {sessionState.totalAttempts}
+                    </div>
+                  )}
+                  <div className="space-y-6 text-center">
+                    <div className="flex items-center justify-center flex-wrap">
+                      {enemyWillDie ? (
+                        <Kbd className="text-3xl font-bold py-2">
+                          DEFEATED
+                        </Kbd>
+                      ) : (
+                        currentPrompt.map((kana, index) => (
+                          <Kbd key={index} className="text-5xl font-bold py-2">
+                            {kana.character}
+                          </Kbd>
+                        ))
+                      )}
+                    </div>
+                    <form onSubmit={handleSubmit} className="flex justify-center">
+                      <Input
+                        ref={inputRef}
+                        type="text"
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        className="max-w-2xl text-2xl h-14"
+                        autoFocus
+                        disabled={isGameOver || enemyDefeated || enemyWillDie}
+                      />
+                    </form>
                   </div>
-                )}
-                <div className="space-y-6 text-center">
-                  <div className="flex items-center justify-center flex-wrap">
-                    {currentPrompt.map((kana, index) => (
-                      <Kbd key={index} className="text-5xl font-bold py-2">
-                        {kana.character}
-                      </Kbd>
-                    ))}
-                  </div>
-                  <form onSubmit={handleSubmit} className="flex justify-center">
-                    <Input
-                      ref={inputRef}
-                      type="text"
-                      value={userInput}
-                      onChange={(e) => setUserInput(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      className="max-w-2xl text-2xl h-14"
-                      autoFocus
-                      disabled={isGameOver}
-                    />
-                  </form>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
+
+          {/* Spacer below prompt - flex grow to keep prompt centered */}
+          <div className="flex-1 shrink-0"></div>
         </div>
       )}
 

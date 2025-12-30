@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
+import KanaChart from '~/components/KanaChart';
 import { Button } from '~/components/ui/8bit/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/8bit/card';
 import { Checkbox } from '~/components/ui/8bit/checkbox';
 import { Kbd } from '~/components/ui/8bit/kbd';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import {
-    allKanaGroups, hiraganaCombinationGroups, hiraganaGroups, katakanaCombinationGroups,
-    katakanaGroups
+  allKanaGroups, hiraganaCombinationGroups, hiraganaGroups, katakanaCombinationGroups,
+  katakanaGroups
 } from '~/data/kana';
+import { calculateWilsonConfidence } from '~/utils/fsrs';
 import { loadProgress, loadSelectedGroups, saveSelectedGroups } from '~/utils/storage';
 
 import type { KanaGroup } from '~/data/kana';
@@ -179,6 +181,10 @@ export default function KanaSelection({ onStart }: KanaSelectionProps) {
       );
     }
 
+    // Calculate Wilson confidence
+    const wilsonConfidence = calculateWilsonConfidence(stats.correct, stats.reps);
+    const wilsonConfidencePercent = Math.round(wilsonConfidence * 100);
+
     return (
       <div className="space-y-1.5 text-left max-w-xs">
         <div className="font-semibold border-b border-gray-700 pb-1">Statistics</div>
@@ -186,30 +192,11 @@ export default function KanaSelection({ onStart }: KanaSelectionProps) {
           <div>Shown: <span className="font-semibold">{stats.reps}</span> times</div>
           <div>Correct: <span className="font-semibold">{stats.correct}</span> times</div>
           <div>Accuracy: <span className="font-semibold">{stats.accuracy}%</span></div>
-        </div>
-        <div className="border-t border-gray-700 pt-1 space-y-0.5 text-xs">
-          <div>State: <span className="font-semibold">{stats.state}</span></div>
-          <div>Stability: <span className="font-semibold">{stats.stability}</span></div>
-          <div>Difficulty: <span className="font-semibold">{stats.difficulty}</span></div>
-          <div>FSRS Reps: <span className="font-semibold">{stats.fsrsReps}</span></div>
-          <div>FSRS Lapses: <span className="font-semibold">{stats.fsrsLapses}</span></div>
-          <div>Scheduled Days: <span className="font-semibold">{stats.scheduledDays}</span></div>
-          <div>Learning Steps: <span className="font-semibold">{stats.learningSteps}</span></div>
-          {stats.daysSinceLastReview !== null && (
-            <div>Last review: <span className="font-semibold">{stats.daysSinceLastReview}d ago</span></div>
-          )}
-          {stats.daysUntilDue !== null && stats.daysUntilDue > 0 && (
-            <div>Due in: <span className="font-semibold">{stats.daysUntilDue}d</span></div>
-          )}
-          {stats.daysUntilDue !== null && stats.daysUntilDue <= 0 && (
-            <div className="text-yellow-400">Due now</div>
-          )}
+          <div>Confidence: <span className="font-semibold">{wilsonConfidencePercent}%</span></div>
         </div>
       </div>
     );
   };
-
-
 
   const renderKanaGrid = (groups: KanaGroup[]) => {
     // Find max characters in this specific set of groups
@@ -272,8 +259,8 @@ export default function KanaSelection({ onStart }: KanaSelectionProps) {
         <div className="sticky top-0 z-10 border-b bg-amber-50 shadow-sm">
           <div className="mx-auto max-w-7xl px-4 py-4">
             <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold tracking-tight">
-                Select Kana to Practice
+              <h1 className="retro text-3xl font-bold tracking-tight">
+                KANA DOJO
               </h1>
               <Button
                 onClick={handleStart}
@@ -281,6 +268,30 @@ export default function KanaSelection({ onStart }: KanaSelectionProps) {
               >
                 Start Practice
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="border-b bg-amber-50 px-4 py-3">
+          <div className="mx-auto max-w-7xl">
+            <div className="retro flex items-center gap-6 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 rounded-none border-2 border-foreground bg-green-400"></div>
+                <span>MASTERED</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 rounded-none border-2 border-foreground bg-yellow-400"></div>
+                <span>LEARNING</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 rounded-none border-2 border-foreground bg-red-400"></div>
+                <span>STRUGGLING</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 rounded-none border-2 border-foreground bg-gray-300"></div>
+                <span>NEW</span>
+              </div>
             </div>
           </div>
         </div>
@@ -400,6 +411,9 @@ export default function KanaSelection({ onStart }: KanaSelectionProps) {
                 {renderKanaGrid(katakanaCombinationGroups)}
               </CardContent>
             </Card>
+
+            {/* Chart Section */}
+            <KanaChart selectedGroups={selectedGroups} kanaCards={kanaCards} />
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { createEmptyCard, fsrs } from 'ts-fsrs';
+import { createEmptyCard, fsrs } from "ts-fsrs";
 
 import type { Grade } from "ts-fsrs";
 
@@ -8,7 +8,7 @@ import type { KanaCard } from "~/types/progress";
 // Configure FSRS for kana learning with shorter intervals
 // Learning steps: multiple short intervals to keep cards in Learning state longer
 // This prevents day-long due dates until cards are well-learned
-const scheduler = fsrs({
+export const scheduler = fsrs({
   // Short learning steps - review within minutes/hours, not days
   // Cards must pass through all steps before entering Review state
   learning_steps: ["1m", "5m", "15m", "1h", "4h"],
@@ -34,6 +34,41 @@ export function initializeKanaCard(kanaId: string): KanaCard {
     card: createEmptyCard(),
     kanaId,
   };
+}
+
+/**
+ * Calculate Wilson Confidence Interval (lower bound)
+ * This provides a conservative estimate of the true success rate,
+ * accounting for sample size uncertainty.
+ *
+ * @param successes - Number of successful attempts
+ * @param total - Total number of attempts
+ * @param z - Z-score for confidence level (default 1.96 for 95% confidence)
+ * @returns Wilson confidence score (0-1), or 0 if no attempts
+ */
+export function calculateWilsonConfidence(
+  successes: number,
+  total: number,
+  z: number = 1.96
+): number {
+  if (total === 0) {
+    return 0;
+  }
+
+  const p = successes / total;
+  const n = total;
+
+  // Wilson score interval formula (lower bound)
+  const denominator = 1 + (z * z) / n;
+  const numerator =
+    p +
+    (z * z) / (2 * n) -
+    z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n));
+
+  const wilsonLower = numerator / denominator;
+
+  // Clamp to [0, 1] and return as proportion (0-1)
+  return Math.max(0, Math.min(1, wilsonLower));
 }
 
 /**
@@ -73,48 +108,19 @@ export function calculateWeight(
     retrievabilityWeight = 1.0;
   }
 
-  // Factor 2: Accuracy with confidence based on total shown
-  // Calculate accuracy from totalShown and totalCorrect
+  // Factor 2: Wilson Confidence (statistically sound accuracy estimate)
+  // Use Wilson Confidence Interval instead of raw accuracy to account for sample size uncertainty
   const totalShown = kanaCard.totalShown ?? 0;
   const totalCorrect = kanaCard.totalCorrect ?? 0;
-  let accuracyWeight = 1.0;
+  const wilsonConfidence = calculateWilsonConfidence(totalCorrect, totalShown);
 
-  if (totalShown > 0) {
-    const accuracy = totalCorrect / totalShown;
-    // Base accuracy weight: lower accuracy = higher weight
-    // Invert: weight = 1 / (accuracy + 0.1)
-    // Accuracy 0.0 (0%) → weight 10.0, Accuracy 0.5 (50%) → weight 1.67, Accuracy 1.0 (100%) → weight 0.91
-    const baseAccuracyWeight = 1 / (accuracy + 0.1);
-
-    // Confidence factor based on total shown (caps at 1.0 when totalShown >= 10)
-    // More reviews = higher confidence in the accuracy measurement
-    const confidenceFactor = Math.min(totalShown / 10, 1.0);
-
-    // Apply confidence adjustment:
-    // - High accuracy (> 0.7): More total shown = higher confidence it's mastered → reduce weight
-    // - Low accuracy (< 0.5): More total shown = higher confidence it's difficult → increase weight
-    // - Neutral accuracy (0.5-0.7): Minimal adjustment
-    if (accuracy > 0.7) {
-      // High accuracy: reduce weight as confidence increases
-      // Formula: baseWeight * (1 - confidenceFactor * 0.3)
-      // At max confidence (1.0): reduces weight by 30%
-      accuracyWeight = baseAccuracyWeight * (1 - confidenceFactor * 0.3);
-    } else if (accuracy < 0.5) {
-      // Low accuracy: increase weight as confidence increases
-      // Formula: baseWeight * (1 + confidenceFactor * 0.5)
-      // At max confidence (1.0): increases weight by 50%
-      accuracyWeight = baseAccuracyWeight * (1 + confidenceFactor * 0.5);
-    } else {
-      // Neutral accuracy: slight increase to ensure practice
-      accuracyWeight = baseAccuracyWeight * (1 + confidenceFactor * 0.1);
-    }
-  } else {
-    // New card (no reviews yet) - neutral weight
-    accuracyWeight = 1.0;
-  }
+  // Invert Wilson confidence: lower confidence = higher weight (needs more practice)
+  // Formula: 1 / (wilsonConfidence + 0.1)
+  // Wilson 0.0 (0%) → weight 10.0, Wilson 0.5 (50%) → weight 1.67, Wilson 1.0 (100%) → weight 0.91
+  const wilsonWeight = 1 / (wilsonConfidence + 0.1);
 
   // Combine with 50/50 split
-  return retrievabilityWeight * 0.5 + accuracyWeight * 0.5;
+  return retrievabilityWeight * wilsonWeight;
 }
 
 export function getNextKana(
@@ -274,4 +280,25 @@ export function reviewKana(
     totalShown,
     totalCorrect,
   };
+}
+
+/**
+ * Get retrievability for a kana card
+ * @param kanaCard - The kana card to get retrievability for
+ * @param now - Current date (defaults to now)
+ * @returns Retrievability value (0-1), or 0 if calculation fails or card is new
+ */
+export function getRetrievability(
+  kanaCard: KanaCard | null,
+  now: Date = new Date()
+): number {
+  if (!kanaCard) {
+    return 0;
+  }
+
+  try {
+    return scheduler.get_retrievability(kanaCard.card, now, false);
+  } catch {
+    return 0;
+  }
 }

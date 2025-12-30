@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import swordIcon from '~/assets/sword.png';
 import { Avatar, AvatarFallback } from '~/components/ui/8bit/avatar';
 import HealthBar from '~/components/ui/8bit/health-bar';
 
@@ -15,6 +16,7 @@ export interface EnemyRef {
     playDie: () => void;
     playMiss: () => void; // Play miss animation and show floating miss text
     heal: (amount: number) => void; // Heal enemy by amount (up to max health)
+    willDie: (damage: number) => boolean; // Returns true if enemy will die from given damage
     getContainerElement: () => HTMLElement | null; // Expose container DOM element
     getSpriteElement: () => HTMLElement | null; // Expose sprite DOM element
 }
@@ -120,6 +122,9 @@ const Enemy = forwardRef<EnemyRef, EnemyProps>(({ enemy, isActive = false, turns
             setCurrentHealth((prev) => Math.min(enemy.health, prev + amount));
             setState('heal');
         },
+        willDie: (damage: number) => {
+            return currentHealth - damage <= 0;
+        },
         getContainerElement: () => containerRef.current,
         getSpriteElement: () => spriteRef.current,
     }), [currentHealth, enemy.health]);
@@ -199,15 +204,19 @@ const Enemy = forwardRef<EnemyRef, EnemyProps>(({ enemy, isActive = false, turns
             {/* Health Bar */}
             <div className="w-full max-w-[150px] relative">
                 {/* Turn Countdown Badge */}
-                {turnsUntilAttack !== undefined && !isActive && (
-                    <div className="absolute -left-6 top-1/2 -translate-y-1/2 z-10">
-                        <Avatar variant="retro" className="w-10 h-10 rounded-none">
-                            <AvatarFallback className="bg-red-600 text-white text-lg font-bold retro border-2 border-white rounded-none">
-                                {turnsUntilAttack}
-                            </AvatarFallback>
-                        </Avatar>
-                    </div>
-                )}
+                <div className="absolute -left-6 top-1/2 -translate-y-1/2 z-10">
+                    <Avatar variant="retro" className="w-10 h-10 rounded-none">
+                        <AvatarFallback className="bg-red-700 text-white text-lg font-bold retro border-2 border-white rounded-none">
+                            {turnsUntilAttack && turnsUntilAttack}
+                            {!turnsUntilAttack && <img
+                                src={swordIcon}
+                                alt="Sword"
+                                className="w-full h-full object-contain"
+                                style={{ imageRendering: 'pixelated' }}
+                            />}
+                        </AvatarFallback>
+                    </Avatar>
+                </div>
                 <HealthBar
                     value={(currentHealth / enemy.health) * 100}
                     className="w-full"

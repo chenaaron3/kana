@@ -1,6 +1,6 @@
-# Kana Learning Game
+# Kana Dojo
 
-An interactive, game-based application for learning Japanese Hiragana and Katakana characters using spaced repetition and engaging visual feedback.
+An interactive, RPG-style application for learning Japanese Hiragana and Katakana characters using spaced repetition and engaging visual feedback.
 
 ## Overview
 
@@ -66,7 +66,7 @@ Kana Learning Game combines effective spaced repetition algorithms (FSRS) with a
 
 ```bash
 git clone <repository-url>
-cd kana-vite
+cd kana-dojo
 ```
 
 2. Install dependencies
