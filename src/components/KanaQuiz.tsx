@@ -529,89 +529,84 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
 
           {/* Current Prompt - centered */}
           <div className="w-full max-w-2xl px-4 shrink-0 mx-auto">
-            <div className={
-              enemyWillDie
-                ? 'relative border-4 border-blue-600 rounded-lg p-0.5 bg-blue-100/50'
+            <Card>
+              <CardContent className={`relative pt-6 ${enemyWillDie
+                ? 'bg-blue-100/60'
                 : promptType === 'defense'
-                  ? 'relative border-4 border-red-600 rounded-lg p-0.5 bg-red-100/50'
+                  ? 'bg-red-100/60'
                   : ''
-            }>
-              <Card>
-                <CardContent className={`relative pt-6 ${enemyWillDie
-                  ? 'bg-blue-50/40'
-                  : promptType === 'defense'
-                    ? 'bg-red-50/40'
-                    : ''
-                  }`}>
-                  {/* Player Lives Display - top left */}
-                  {playerLives !== undefined && (
-                    <div className="absolute top-4 left-4 flex gap-1">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <img
-                          key={i}
-                          src={i < playerLives ? fullHeart : emptyHeart}
-                          alt={i < playerLives ? "Full heart" : "Empty heart"}
-                          className="w-6 h-6"
-                          style={{
-                            imageRendering: 'pixelated'
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Accuracy in top right */}
-                  {sessionState.totalAttempts > 0 && (
-                    <div className="absolute top-4 right-4 text-sm text-muted-foreground">
-                      {sessionState.totalCorrect} / {sessionState.totalAttempts}
-                    </div>
-                  )}
-                  <div className="space-y-6 text-center">
-                    <div className="flex items-center justify-center flex-wrap min-h-[30px]">
-                      {enemyWillDie ? (
-                        <Kbd className="text-3xl font-bold py-2">
-                          DEFEATED
-                        </Kbd>
-                      ) : (
-                        currentPrompt.map((kana, index) => (
-                          <Kbd key={index} className="text-5xl font-bold py-2">
-                            {kana.character}
-                          </Kbd>
-                        ))
-                      )}
-                    </div>
-                    <form onSubmit={handleSubmit} className="flex justify-center">
-                      <Input
-                        ref={inputRef}
-                        type="text"
-                        value={userInput}
-                        onChange={(e) => setUserInput(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        className="max-w-2xl text-2xl h-14"
-                        autoFocus
-                        disabled={isGameOver || enemyDefeated || enemyWillDie}
+                }`}>
+                {/* Player Lives Display - top left */}
+                {playerLives !== undefined && (
+                  <div className="absolute top-4 left-4 flex gap-1">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <img
+                        key={i}
+                        src={i < playerLives ? fullHeart : emptyHeart}
+                        alt={i < playerLives ? "Full heart" : "Empty heart"}
+                        className="w-6 h-6"
+                        style={{
+                          imageRendering: 'pixelated'
+                        }}
                       />
-                    </form>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                )}
+
+                {/* Accuracy in top right */}
+                {sessionState.totalAttempts > 0 && (
+                  <div className="absolute top-4 right-4 text-sm text-muted-foreground">
+                    {sessionState.totalCorrect} / {sessionState.totalAttempts}
+                  </div>
+                )}
+                <div className="space-y-6 text-center">
+                  <div className="flex items-center justify-center flex-wrap min-h-[30px]">
+                    {enemyWillDie ? (
+                      <Kbd className="text-3xl font-bold py-2">
+                        DEFEATED
+                      </Kbd>
+                    ) : (
+                      currentPrompt.map((kana, index) => (
+                        <Kbd key={index} className="text-5xl font-bold py-2">
+                          {kana.character}
+                        </Kbd>
+                      ))
+                    )}
+                  </div>
+                  <form onSubmit={handleSubmit} className="flex justify-center">
+                    <Input
+                      ref={inputRef}
+                      type="text"
+                      value={userInput}
+                      onChange={(e) => setUserInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      className="max-w-2xl text-2xl h-14"
+                      autoFocus
+                      disabled={isGameOver || enemyDefeated || enemyWillDie}
+                    />
+                  </form>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Spacer below prompt - flex grow to keep prompt centered */}
           <div className="flex-1 shrink-0"></div>
         </div>
-      )}
+      )
+      }
 
       {/* Game Over Screen */}
-      {isGameOver && (
-        <GameOver
-          enemiesDefeated={sessionState.enemiesDefeated}
-          totalCorrect={sessionState.totalCorrect}
-          totalAttempts={sessionState.totalAttempts}
-          onRestart={handleRestart}
-        />
-      )}
-    </div>
+      {
+        isGameOver && (
+          <GameOver
+            enemiesDefeated={sessionState.enemiesDefeated}
+            totalCorrect={sessionState.totalCorrect}
+            totalAttempts={sessionState.totalAttempts}
+            onRestart={handleRestart}
+          />
+        )
+      }
+    </div >
   );
 }

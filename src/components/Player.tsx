@@ -169,7 +169,7 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpri
 
     const currentImage = getCurrentFrameImage();
     const comboConfig = getComboConfig(combo);
-    const hasEffect = comboConfig.multiplier > 0;
+    const hasEffect = comboConfig.multiplier > 1;
     const manaPercentage = manaTimeRemaining ? (manaTimeRemaining / comboConfig.timerMs) * 100 : 0;
 
     return (
