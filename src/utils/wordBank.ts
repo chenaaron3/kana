@@ -224,6 +224,7 @@ function hasOverdueKana(
   kanaCards: Record<string, KanaCard>,
   now: Date
 ): boolean {
+  const nowTime = now.getTime();
   return wordKana.some((kanaChar) => {
     // Skip small tsu and other modifiers
     if (kanaChar.character === "っ" || kanaChar.character === "ッ") {
@@ -231,7 +232,21 @@ function hasOverdueKana(
     }
 
     const card = kanaCards[kanaChar.id];
-    return card?.card.due && card.card.due < now;
+    if (!card?.card.due) {
+      return false;
+    }
+
+    // Normalize due date to timestamp for comparison
+    // Handle Date objects, strings, and numbers (timestamps)
+    const dueTime =
+      card.card.due instanceof Date
+        ? card.card.due.getTime()
+        : typeof card.card.due === "string"
+          ? new Date(card.card.due).getTime()
+          : card.card.due;
+
+    // Check if overdue (due time is in the past)
+    return dueTime < nowTime;
   });
 }
 
@@ -253,8 +268,6 @@ export function getNextWord(
   const filteredKatakana = availableWords.katakana.filter(
     (word) => word.length <= maxCharacters
   );
-  console.log(filteredHiragana.length, filteredKatakana.length);
-  console.log(maxCharacters);
   const totalWords = filteredHiragana.length + filteredKatakana.length;
 
   // Check threshold: need at least 100 words
@@ -270,12 +283,16 @@ export function getNextWord(
   let wordsToSelectFrom: KanaCharacter[][] = [];
   if (useHiragana && filteredHiragana.length > 0) {
     wordsToSelectFrom = filteredHiragana;
+    console.log("using hiragana");
   } else if (availableWords.katakana.length > 0) {
     wordsToSelectFrom = filteredKatakana;
+    console.log("using katakana");
   } else if (filteredHiragana.length > 0) {
     // Fallback to hiragana if katakana is empty
     wordsToSelectFrom = filteredHiragana;
+    console.log("using hiragana fallback");
   } else {
+    console.log("no words available");
     return null;
   }
 
@@ -313,13 +330,16 @@ export function getNextWord(
   if (bucketRandom < 1 / 3) {
     // 1/3 chance: new kana (fallback to all if empty)
     weightedWords = wordsWithNewKana.length > 0 ? wordsWithNewKana : allWords;
+    console.log("using new kana");
   } else if (bucketRandom < 2 / 3) {
     // 1/3 chance: overdue kana (fallback to all if empty)
     weightedWords =
       wordsWithOverdueKana.length > 0 ? wordsWithOverdueKana : allWords;
+    console.log("using overdue kana");
   } else {
     // 1/3 chance: all words
     weightedWords = allWords;
+    console.log("using all words");
   }
 
   if (weightedWords.length === 0) {

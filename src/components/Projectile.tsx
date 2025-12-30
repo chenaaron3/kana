@@ -64,26 +64,6 @@ const Projectile = ({ onComplete, enemySpriteRef, playerContainerRef, type = 'ba
                     const targetX = enemySpriteRect.left + enemySpriteRect.width / 2;
                     const targetY = enemySpriteRect.top + enemySpriteRect.height / 2;
 
-                    console.log('Player sprite rect:', {
-                        left: playerSpriteRect.left,
-                        top: playerSpriteRect.top,
-                        width: playerSpriteRect.width,
-                        height: playerSpriteRect.height,
-                        centerX: playerSpriteRect.left + playerSpriteRect.width / 2,
-                        centerY: playerSpriteRect.top + playerSpriteRect.height / 2,
-                    });
-                    console.log('Enemy sprite rect:', {
-                        left: enemySpriteRect.left,
-                        top: enemySpriteRect.top,
-                        width: enemySpriteRect.width,
-                        height: enemySpriteRect.height,
-                        centerX: enemySpriteRect.left + enemySpriteRect.width / 2,
-                        centerY: enemySpriteRect.top + enemySpriteRect.height / 2,
-                    });
-                    console.log('Start position:', { x: startX, y: startY });
-                    console.log('Target position:', { x: targetX, y: targetY });
-                    console.log('Window scroll:', { x: window.scrollX, y: window.scrollY });
-
                     setStartPosition({ x: startX, y: startY });
                     setTargetPosition({ x: targetX, y: targetY });
                 }

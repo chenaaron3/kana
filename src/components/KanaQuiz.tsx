@@ -264,6 +264,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     setTimeout(() => {
       const defeated = enemyRef.current?.playHit(damage) ?? false;
       if (defeated) {
+        setCurrentPrompt([]);
         setEnemyDefeated(true);
       }
     }, 500);
@@ -566,7 +567,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                     </div>
                   )}
                   <div className="space-y-6 text-center">
-                    <div className="flex items-center justify-center flex-wrap">
+                    <div className="flex items-center justify-center flex-wrap min-h-[30px]">
                       {enemyWillDie ? (
                         <Kbd className="text-3xl font-bold py-2">
                           DEFEATED

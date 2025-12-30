@@ -202,7 +202,7 @@ const Enemy = forwardRef<EnemyRef, EnemyProps>(({ enemy, isActive = false, turns
     return (
         <div ref={containerRef} className="flex flex-col items-center gap-2 relative">
             {/* Health Bar */}
-            <div className="w-full max-w-[150px] relative">
+            <div className="w-full max-w-[150px] relative pl-5">
                 {/* Turn Countdown Badge */}
                 <div className="absolute -left-6 top-1/2 -translate-y-1/2 z-10">
                     <Avatar variant="retro" className="w-10 h-10 rounded-none">

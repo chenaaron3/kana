@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { Avatar, AvatarFallback } from '~/components/ui/8bit/avatar';
 import ManaBar from '~/components/ui/8bit/mana-bar';
 import { getComboConfig } from '~/constants';
 
@@ -176,10 +177,20 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpri
             {/* Mana Bar - positioned absolutely */}
             {combo > 0 && (
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[150px]">
-                    <ManaBar
-                        value={manaPercentage}
-                        className="w-full"
-                    />
+                    <div className="relative pl-5">
+                        {/* Combo Avatar */}
+                        <div className="absolute -left-6 top-1/2 -translate-y-1/2 z-10">
+                            <Avatar variant="retro" className="w-10 h-10 rounded-none">
+                                <AvatarFallback className="bg-blue-700 text-white text-lg font-bold retro border-2 border-white rounded-none">
+                                    {combo}
+                                </AvatarFallback>
+                            </Avatar>
+                        </div>
+                        <ManaBar
+                            value={manaPercentage}
+                            className="w-full"
+                        />
+                    </div>
                 </div>
             )}
             <div
