@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'framer-motion';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Avatar, AvatarFallback } from '~/components/ui/8bit/avatar';
 import ManaBar from '~/components/ui/8bit/mana-bar';
@@ -20,7 +21,6 @@ export interface PlayerRef {
 interface PlayerProps {
     isActive?: boolean;
     enemySpriteRef?: React.RefObject<HTMLElement | null>;
-    projectileType?: 'basic' | 'special'; // Type of projectile to use
     combo?: number; // Combo count for fire effect
     manaTimeRemaining?: number; // Time remaining in milliseconds
 }
@@ -61,7 +61,7 @@ const ANIMATION_CONFIG = {
     heal: { frames: healFrames.length, fps: 10 },
 };
 
-const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpriteRef, projectileType = 'basic', combo = 0, manaTimeRemaining = 0 }, ref) => {
+const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpriteRef, combo = 0, manaTimeRemaining = 0 }, ref) => {
     const [state, setState] = useState<PlayerState>('idle');
     const [currentFrame, setCurrentFrame] = useState(0);
     const [showProjectile, setShowProjectile] = useState(false);
@@ -171,28 +171,38 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpri
     const comboConfig = getComboConfig(combo);
     const hasEffect = comboConfig.multiplier > 1;
     const manaPercentage = manaTimeRemaining ? (manaTimeRemaining / comboConfig.timerMs) * 100 : 0;
+    // Determine projectile type based on combo: special if combo >= 3, basic otherwise
+    const projectileType = combo >= 3 ? 'special' : 'basic';
 
     return (
         <div ref={containerRef} className="flex flex-col items-center gap-2 justify-end relative w-full h-full">
-            {/* Mana Bar - positioned absolutely */}
-            {combo > 0 && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[150px]">
-                    <div className="relative pl-5">
-                        {/* Combo Avatar */}
-                        <div className="absolute -left-6 top-1/2 -translate-y-1/2 z-10">
-                            <Avatar variant="retro" className="w-10 h-10 rounded-none">
-                                <AvatarFallback className="bg-blue-700 text-white text-lg font-bold retro border-2 border-white rounded-none">
-                                    {combo}
-                                </AvatarFallback>
-                            </Avatar>
+            {/* Mana Bar - positioned absolutely with fade animation */}
+            <AnimatePresence>
+                {combo > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[150px]"
+                    >
+                        <div className="relative pl-5">
+                            {/* Combo Avatar */}
+                            <div className="absolute -left-6 top-1/2 -translate-y-1/2 z-10">
+                                <Avatar variant="retro" className="w-10 h-10 rounded-none">
+                                    <AvatarFallback className="bg-blue-700 text-white text-lg font-bold retro border-2 border-white rounded-none">
+                                        {combo}
+                                    </AvatarFallback>
+                                </Avatar>
+                            </div>
+                            <ManaBar
+                                value={manaPercentage}
+                                className="w-full"
+                            />
                         </div>
-                        <ManaBar
-                            value={manaPercentage}
-                            className="w-full"
-                        />
-                    </div>
-                </div>
-            )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
             <div
                 className={`relative transition-all duration-300 ${isActive
                     ? 'drop-shadow-[0_0_20px_rgba(59,130,246,0.8)]'

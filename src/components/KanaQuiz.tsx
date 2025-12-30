@@ -64,8 +64,6 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const [enemyDefeated, setEnemyDefeated] = useState<boolean>(false);
   const [enemyWillDie, setEnemyWillDie] = useState<boolean>(false);
   const [combo, setCombo] = useState<number>(0); // Track consecutive correct answers
-  const [promptStartTime, setPromptStartTime] = useState<number>(Date.now()); // Track when prompt was shown
-  const [currentProjectileType, setCurrentProjectileType] = useState<'basic' | 'special'>('basic'); // Current projectile type
   const [currentPrompt, setCurrentPrompt] = useState<KanaCharacter[]>([]);
 
   // Memoize timer expire callback
@@ -214,7 +212,6 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     resetManaTimer();
     setCurrentPrompt(prompt);
     setUserInput("");
-    setPromptStartTime(Date.now()); // Reset timer when new prompt is generated
   }, [promptAttempt, enemyDefeated, currentEnemy.attack, sessionState.enemiesDefeated]);
 
   // Clear previousAnswer only when selectedKanaIds changes
@@ -254,12 +251,11 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   }, [enemyDefeated]);
 
 
-  const playerAttack = (damage: number = 1, projectileType: 'basic' | 'special' = 'basic') => {
+  const playerAttack = (damage: number = 1) => {
     // Check if enemy will die from this damage
     const willDie = enemyRef.current?.willDie(damage) ?? false;
     setEnemyWillDie(willDie);
 
-    setCurrentProjectileType(projectileType);
     playerRef.current?.playAttack();
     setTimeout(() => {
       const defeated = enemyRef.current?.playHit(damage) ?? false;
@@ -381,10 +377,6 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     const newPromptAttempt = promptAttempt + 1;
     setPromptAttempt(newPromptAttempt);
 
-    // Calculate response time and check for quick attack
-    const responseTime = Date.now() - promptStartTime;
-    const isQuickAttack = allCorrect && responseTime < 10000; // Less than 1 second
-
     // Handle attack vs defense prompts differently
     if (promptType === 'attack') {
       if (allCorrect) {
@@ -394,9 +386,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
         const damageMultiplier = getComboMultiplier(newCombo);
         const damage = Math.ceil(1 * damageMultiplier);
 
-        // Use special projectile for quick attacks
-        const projectileType = isQuickAttack ? 'special' : 'basic';
-        playerAttack(damage, projectileType);
+        playerAttack(damage);
       } else {
         // Incorrect attack - reset combo and enemy heals
         setCombo(0);
@@ -505,7 +495,6 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                   ref={playerRef}
                   isActive={promptType === 'attack'}
                   enemySpriteRef={enemyRef.current ? { current: enemyRef.current.getSpriteElement() } as React.RefObject<HTMLElement | null> : undefined}
-                  projectileType={currentProjectileType}
                   combo={combo}
                   manaTimeRemaining={manaTimeRemaining}
                 />
