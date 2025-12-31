@@ -17,7 +17,6 @@ interface GameAreaProps {
   enemyRef: React.RefObject<EnemyRef | null>;
   onSubmit: (e: React.FormEvent) => void;
   onKeyPress: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  onInputChange: (value: string) => void;
   useStore: GameStoreHook;
 }
 
@@ -26,7 +25,6 @@ export default function GameArea({
   enemyRef,
   onSubmit,
   onKeyPress,
-  onInputChange,
   useStore,
 }: GameAreaProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -44,6 +42,9 @@ export default function GameArea({
   const playerLives = useStore((state: GameStore) => state.playerLives);
   const sessionState = useStore((state: GameStore) => state.sessionState);
   const manaTimeRemaining = useStore((state: GameStore) => state.manaTimeRemaining);
+
+  // Get actions from store
+  const setUserInput = useStore.getState().setUserInput;
 
   // Auto focus input when prompt changes
   useEffect(() => {
@@ -120,7 +121,7 @@ export default function GameArea({
                   ref={inputRef}
                   type="text"
                   value={userInput}
-                  onChange={(e) => onInputChange(e.target.value)}
+                  onChange={(e) => setUserInput(e.target.value)}
                   onKeyPress={onKeyPress}
                   className="max-w-2xl text-base md:text-2xl h-12 md:h-14"
                   style={{ fontSize: '16px' }}

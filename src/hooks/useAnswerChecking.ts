@@ -31,20 +31,22 @@ export function useAnswerChecking({
     clearPreviousAnswer();
   }, [sessionState.selectedKanaIds, useStore]);
 
-  // Validate input and return match details for each kana
-  const validateInputWithDetails = (
-    input: string
-  ): { allCorrect: boolean; matches: boolean[] } => {
-    if (currentPrompt.length === 0) return { allCorrect: false, matches: [] };
+  const checkAnswers = (
+    input: string,
+    onResult: (result: { allCorrect: boolean; correctCount: number }) => void
+  ) => {
+    if (currentPrompt.length === 0) return;
 
     const normalizedInput = input.trim().toLowerCase();
-    if (!normalizedInput) return { allCorrect: false, matches: [] };
+    if (!normalizedInput) return;
 
+    let allCorrect = true;
+    let correctCount = 0;
+    const updatedKanaCards: Record<string, KanaCard> = {};
     let inputIndex = 0;
-    const matches: boolean[] = [];
 
     // Check each kana by trying to match its romaji from current input position
-    for (const kana of currentPrompt) {
+    currentPrompt.forEach((kana) => {
       const sortedRomaji = [...kana.romaji]
         .map((r) => r.toLowerCase())
         .sort((a, b) => b.length - a.length);
@@ -57,50 +59,30 @@ export function useAnswerChecking({
       const remainingInput = normalizedInput.substring(inputIndex);
       const match = remainingInput.match(pattern);
 
+      let matched = false;
+      let matchedRomaji = "";
+
       if (match) {
-        matches.push(true);
-        inputIndex += match[1]!.length;
+        matched = true;
+        matchedRomaji = match[1]!;
+        inputIndex += matchedRomaji.length;
       } else {
-        matches.push(false);
-        // Advance input index even for incorrect matches
         const maxRomajiLength = Math.max(...kana.romaji.map((r) => r.length));
         const endIndex = Math.min(
           inputIndex + maxRomajiLength,
           normalizedInput.length
         );
-        inputIndex += Math.max(1, endIndex - inputIndex);
+        matchedRomaji = normalizedInput.substring(inputIndex, endIndex);
+        inputIndex += Math.max(1, matchedRomaji.length);
       }
-    }
 
-    // All kana matched and we've consumed all input
-    const allCorrect =
-      matches.every((m) => m) && inputIndex === normalizedInput.length;
-    return { allCorrect, matches };
-  };
+      const isCorrect = matched;
 
-  // Validate input without side effects (for real-time checking)
-  const validateInput = (input: string): boolean => {
-    return validateInputWithDetails(input).allCorrect;
-  };
-
-  const checkAnswers = (
-    input: string,
-    onResult: (result: { allCorrect: boolean; correctCount: number }) => void
-  ) => {
-    if (currentPrompt.length === 0) return;
-
-    const normalizedInput = input.trim().toLowerCase();
-    if (!normalizedInput) return;
-
-    // Use validateInputWithDetails to get match information
-    const { allCorrect, matches } = validateInputWithDetails(input);
-    const correctCount = matches.filter((m) => m).length;
-
-    const updatedKanaCards: Record<string, KanaCard> = {};
-
-    // Update FSRS cards for each kana based on match results
-    currentPrompt.forEach((kana, index) => {
-      const isCorrect = matches[index] ?? false;
+      if (isCorrect) {
+        correctCount++;
+      } else {
+        allCorrect = false;
+      }
 
       // Update FSRS card
       let kanaCard = kanaCards[kana.id];
@@ -141,6 +123,5 @@ export function useAnswerChecking({
 
   return {
     checkAnswers,
-    validateInput,
   };
 }

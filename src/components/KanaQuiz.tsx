@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { useStore } from 'zustand';
 import { getComboConfig } from '~/constants';
 import { useAnswerChecking } from '~/hooks/useAnswerChecking';
 import { useCombat } from '~/hooks/useCombat';
@@ -17,7 +18,6 @@ import type { GameStore } from '~/store/gameStore';
 import type { Session } from "~/types/progress";
 import type { EnemyRef } from './Enemy';
 import type { PlayerRef } from './Player';
-
 interface KanaQuizProps {
   session: Session;
   onBack: () => void;
@@ -84,7 +84,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     useStore,
   });
 
-  const { checkAnswers, validateInput } = useAnswerChecking({
+  const { checkAnswers } = useAnswerChecking({
     kanaCards,
     updateKanaCards,
     useStore,
@@ -99,11 +99,10 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const { isMobile, visualViewportHeight, headerRef } = useMobileViewport();
 
   // Handle answer submission
-  const handleSubmit = (e?: React.FormEvent, inputValue?: string) => {
-    e?.preventDefault();
-    const valueToSubmit = inputValue ?? userInput;
-    if (valueToSubmit.trim() && currentPrompt.length > 0 && !isGameOver && !enemyDefeated && !enemyWillDie) {
-      checkAnswers(valueToSubmit, (result) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (userInput.trim() && currentPrompt.length > 0 && !isGameOver && !enemyDefeated && !enemyWillDie) {
+      checkAnswers(userInput, (result) => {
         // Increment prompt attempt (regardless of prompt type or correctness)
         incrementPromptAttempt();
 
@@ -122,19 +121,6 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       handleSubmit(e);
-    }
-  };
-
-  // Handle input change with real-time validation
-  const handleInputChange = (value: string) => {
-    setUserInput(value);
-
-    // Check if input is correct and complete
-    if (value.trim() && currentPrompt.length > 0 && !isGameOver && !enemyDefeated && !enemyWillDie) {
-      if (validateInput(value)) {
-        // Input is fully correct, auto-submit
-        handleSubmit(undefined, value);
-      }
     }
   };
 
@@ -165,7 +151,6 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
           enemyRef={enemyRef}
           onSubmit={handleSubmit}
           onKeyPress={handleKeyPress}
-          onInputChange={handleInputChange}
           useStore={useStore}
         />
       )}

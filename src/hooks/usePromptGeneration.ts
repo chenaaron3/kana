@@ -141,7 +141,6 @@ export function usePromptGeneration({
     generatePrompt,
     setPromptTypeFn,
     setCurrentPromptFn,
-    resetManaTimer,
     // resetManaTimer is intentionally excluded - we call it but don't depend on it
     // Including it would cause prompts to regenerate when combo resets (timerDuration changes)
   ]);
