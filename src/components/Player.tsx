@@ -184,13 +184,13 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpri
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[150px]"
+                        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[100px] md:max-w-[150px]"
                     >
-                        <div className="relative pl-5">
+                        <div className="relative pl-4 md:pl-5">
                             {/* Combo Avatar */}
-                            <div className="absolute -left-6 top-1/2 -translate-y-1/2 z-10">
-                                <Avatar variant="retro" className="w-10 h-10 rounded-none">
-                                    <AvatarFallback className="bg-blue-700 text-white text-lg font-bold retro border-2 border-white rounded-none">
+                            <div className="absolute -left-4 md:-left-6 top-1/2 -translate-y-1/2 z-10">
+                                <Avatar variant="retro" className="w-6 h-6 md:w-10 md:h-10 rounded-none">
+                                    <AvatarFallback className="bg-blue-700 text-white text-xs md:text-lg font-bold retro border-2 border-white rounded-none">
                                         {combo}
                                     </AvatarFallback>
                                 </Avatar>

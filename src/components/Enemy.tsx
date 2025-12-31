@@ -202,11 +202,11 @@ const Enemy = forwardRef<EnemyRef, EnemyProps>(({ enemy, isActive = false, turns
     return (
         <div ref={containerRef} className="flex flex-col items-center gap-2 relative">
             {/* Health Bar */}
-            <div className="w-full max-w-[150px] relative pl-5">
+            <div className="w-full max-w-[100px] md:max-w-[150px] relative pl-4 md:pl-5">
                 {/* Turn Countdown Badge */}
-                <div className="absolute -left-6 top-1/2 -translate-y-1/2 z-10">
-                    <Avatar variant="retro" className="w-10 h-10 rounded-none">
-                        <AvatarFallback className="bg-red-700 text-white text-lg font-bold retro border-2 border-white rounded-none">
+                <div className="absolute -left-4 md:-left-6 top-1/2 -translate-y-1/2 z-10">
+                    <Avatar variant="retro" className="w-6 h-6 md:w-10 md:h-10 rounded-none">
+                        <AvatarFallback className="bg-red-700 text-white text-xs md:text-lg font-bold retro border-2 border-white rounded-none">
                             {turnsUntilAttack && turnsUntilAttack}
                             {!turnsUntilAttack && <img
                                 src={swordIcon}

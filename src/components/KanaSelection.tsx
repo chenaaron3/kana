@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import KanaChart from '~/components/KanaChart';
 import KanaSectionCard from '~/components/KanaSectionCard';
 import { Button } from '~/components/ui/8bit/button';
+import { Card, CardContent } from '~/components/ui/8bit/card';
 import { TooltipProvider } from '~/components/ui/tooltip';
 import {
   allKanaGroups, hiraganaCombinationGroups, hiraganaGroups, katakanaCombinationGroups,
@@ -199,7 +200,7 @@ export default function KanaSelection({ onStart }: KanaSelectionProps) {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="min-h-screen bg-background overflow-hidden">
+      <div className="min-h-screen bg-background">
         {/* Sticky Header */}
         <div className="sticky top-0 z-10 border-b bg-amber-50 shadow-sm">
           <div className="mx-auto max-w-7xl px-4 py-4">
@@ -211,7 +212,11 @@ export default function KanaSelection({ onStart }: KanaSelectionProps) {
                 onClick={handleStart}
                 className="text-xs md:text-base text-green-600 hover:text-green-700"
               >
-                Start Practice
+                <Card>
+                  <div className="p-2">
+                    Start
+                  </div>
+                </Card>
               </Button>
             </div>
           </div>

@@ -34,6 +34,17 @@ export default function KanaSectionCard({
     getAccuracyColor,
     renderKanaTooltip,
 }: KanaSectionCardProps) {
+    // Get pastel color for section header based on title
+    const getSectionColor = (sectionTitle: string): string => {
+        const colorMap: Record<string, string> = {
+            'Hiragana': 'bg-blue-300',
+            'Hiragana Combinations': 'bg-purple-300',
+            'Katakana': 'bg-pink-300',
+            'Katakana Combinations': 'bg-teal-300',
+        };
+        return colorMap[sectionTitle] || 'bg-background';
+    };
+
     // Count total selected kana characters
     const selectedKanaCount = groups.reduce((count, group) => {
         const groupKey = `${group.name}-${group.characters[0]?.type ?? ""}`;
@@ -45,7 +56,7 @@ export default function KanaSectionCard({
 
     const renderKanaGrid = () => {
         return (
-            <div className="flex flex-col md:flex-row gap-1 md:overflow-x-auto pb-4">
+            <div className="flex flex-col md:flex-row gap-1 md:overflow-x-auto py-4">
                 {groups.map((group) => {
                     const groupKey = `${group.name}-${group.characters[0]?.type ?? ""}`;
                     const isSelected = selectedGroups.has(groupKey);
@@ -91,7 +102,7 @@ export default function KanaSectionCard({
     return (
         <Card>
             <Collapsible defaultOpen>
-                <CardHeader className="p-4 md:p-6">
+                <CardHeader className={`p-4 md:p-6 ${getSectionColor(title)}`}>
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0">
                         <CollapsibleTrigger className="flex flex-col items-start gap-1 text-left w-auto">
                             <CardTitle className="text-lg md:text-2xl text-center md:text-left w-full">{title}</CardTitle>
@@ -103,7 +114,7 @@ export default function KanaSectionCard({
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="text-xs md:text-sm"
+                                className="text-xs md:text-sm mb-0"
                                 onClick={onCheckAll}
                             >
                                 Check all
@@ -111,7 +122,7 @@ export default function KanaSectionCard({
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="text-xs md:text-sm"
+                                className="text-xs md:text-sm mb-0"
                                 onClick={onClear}
                             >
                                 Clear

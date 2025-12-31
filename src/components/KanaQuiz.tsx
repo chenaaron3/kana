@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import emptyHeart from '~/assets/hearts/empty.png';
-import fullHeart from '~/assets/hearts/full.png';
 import { Button } from '~/components/ui/8bit/button';
 import { Card, CardContent } from '~/components/ui/8bit/card';
 import { Input } from '~/components/ui/8bit/input';
@@ -17,6 +15,7 @@ import { getNextWord } from '~/utils/wordBank';
 import Enemy from './Enemy';
 import GameOver from './GameOver';
 import Player from './Player';
+import PlayerStats from './PlayerStats';
 
 import type { KanaCharacter } from '~/data/kana';
 import type { Session, PreviousAnswer, KanaCard, EnemyStats } from "~/types/progress";
@@ -437,14 +436,14 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-background">
       {/* Header Bar - Always visible with Back button and Previous Answer */}
       <div className={`sticky top-0 z-10 border-b ${previousAnswer
         ? previousAnswer.isCorrect
           ? "bg-green-600 border-green-600"
           : "bg-red-600 border-red-600"
-        : "bg-card border-border"
-        }`} style={!previousAnswer ? { backgroundColor: 'hsl(var(--card))' } : undefined}>
+        : "bg-amber-50 border-border shadow-sm"
+        }`}>
         <div className="relative mx-auto max-w-4xl px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             {/* Back Button */}
@@ -483,6 +482,20 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
         </div>
       </div>
 
+      {/* Mobile-only: Hearts and Score below navbar */}
+      {!isGameOver && (
+        <div className="md:hidden bg-card px-4 py-2">
+          <div className="mx-auto max-w-4xl flex items-center justify-between">
+            <PlayerStats
+              playerLives={playerLives}
+              totalCorrect={sessionState.totalCorrect}
+              totalAttempts={sessionState.totalAttempts}
+              variant="mobile"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Main Quiz Area */}
       {!isGameOver && (
         <div className="relative flex-1 flex flex-col min-h-0">
@@ -517,7 +530,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
           </div>
 
           {/* Current Prompt - centered, positioned for keyboard */}
-          <div className="w-full max-w-2xl px-4 shrink-0 mx-auto pb-4 md:pb-0">
+          <div className="fixed bottom-0 left-0 right-0 z-10 w-full max-w-2xl px-4 mx-auto pb-4 md:relative md:z-auto md:bottom-auto md:pb-0 md:shrink-0">
             <Card>
               <CardContent className={`relative pt-6 ${enemyWillDie
                 ? 'bg-blue-100/60'
@@ -525,29 +538,13 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                   ? 'bg-red-100/60'
                   : ''
                 }`}>
-                {/* Player Lives Display - top left */}
-                {playerLives !== undefined && (
-                  <div className="absolute top-4 left-4 flex gap-1">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <img
-                        key={i}
-                        src={i < playerLives ? fullHeart : emptyHeart}
-                        alt={i < playerLives ? "Full heart" : "Empty heart"}
-                        className="w-6 h-6"
-                        style={{
-                          imageRendering: 'pixelated'
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* Accuracy in top right */}
-                {sessionState.totalAttempts > 0 && (
-                  <div className="absolute top-4 right-4 text-sm text-muted-foreground">
-                    {sessionState.totalCorrect} / {sessionState.totalAttempts}
-                  </div>
-                )}
+                {/* Player Stats - top corners (desktop only) */}
+                <PlayerStats
+                  playerLives={playerLives}
+                  totalCorrect={sessionState.totalCorrect}
+                  totalAttempts={sessionState.totalAttempts}
+                  variant="desktop"
+                />
                 <div className="space-y-6 text-center">
                   <div className="flex items-center justify-center flex-wrap min-h-[30px]">
                     {enemyWillDie ? (
