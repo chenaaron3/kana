@@ -84,7 +84,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const [userInput, setUserInput] = useState("");
   const [previousAnswer, setPreviousAnswer] = useState<PreviousAnswer | null>(null);
   const [visualViewportHeight, setVisualViewportHeight] = useState<number>(0);
-  const [headerHeight, setHeaderHeight] = useState<number>(0);
+  const [_headerHeight, setHeaderHeight] = useState<number>(0);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
