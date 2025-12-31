@@ -84,7 +84,6 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const [userInput, setUserInput] = useState("");
   const [previousAnswer, setPreviousAnswer] = useState<PreviousAnswer | null>(null);
   const [visualViewportHeight, setVisualViewportHeight] = useState<number>(0);
-  const [_headerHeight, setHeaderHeight] = useState<number>(0);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -222,41 +221,6 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   useEffect(() => {
     setPreviousAnswer(null);
   }, [sessionState.selectedKanaIds]);
-
-  // Detect mobile and measure header height
-  useEffect(() => {
-    const updateMobileState = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    const updateHeaderHeight = () => {
-      if (headerRef.current) {
-        setHeaderHeight(headerRef.current.offsetHeight);
-      }
-    };
-
-    updateMobileState();
-    updateHeaderHeight();
-
-    // Re-measure when previousAnswer changes (affects header height)
-    const observer = new ResizeObserver(() => {
-      updateHeaderHeight();
-    });
-    if (headerRef.current) {
-      observer.observe(headerRef.current);
-    }
-
-    const handleResize = () => {
-      updateMobileState();
-      updateHeaderHeight();
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [previousAnswer]);
 
   // Use VisualViewport API to handle keyboard and keep header visible (mobile only)
   useEffect(() => {
