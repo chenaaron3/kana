@@ -48,6 +48,7 @@ Kana Learning Game combines effective spaced repetition algorithms (FSRS) with a
 - **React 19** - UI framework
 - **TypeScript** - Type safety
 - **Vite** - Build tool and dev server
+- **Zustand** - Global state management for in-memory game state
 - **Tailwind CSS** - Styling
 - **Framer Motion** - Animation library for projectile effects
 - **ts-fsrs** - Spaced repetition algorithm implementation
@@ -100,25 +101,142 @@ npm run preview
 ```
 src/
 ├── components/
-│   ├── Enemy.tsx          # Enemy character component with animations and health management
-│   ├── GameOver.tsx       # Game over screen component
-│   ├── KanaQuiz.tsx        # Main quiz/game component with combat logic
-│   ├── KanaSelection.tsx   # Kana group selection screen
-│   ├── Player.tsx          # Player character component with animations and lives display
-│   ├── Projectile.tsx      # Projectile animation component
-│   └── ui/                 # Reusable UI components (shadcn/ui)
+│   ├── Enemy.tsx              # Enemy character component with animations and health management
+│   ├── GameOver.tsx           # Game over screen component
+│   ├── KanaQuiz.tsx           # Main quiz/game orchestrator component
+│   ├── KanaSelection.tsx      # Kana group selection screen
+│   ├── Player.tsx             # Player character component with animations and lives display
+│   ├── Projectile.tsx         # Projectile animation component
+│   ├── quiz/
+│   │   ├── GameArea.tsx      # Battle area + prompt input UI component
+│   │   └── QuizHeader.tsx    # Header with back button and previous answer display
+│   └── ui/                    # Reusable UI components (shadcn/ui)
+├── hooks/
+│   ├── useGameState.ts        # Game state initialization and enemy defeat logic
+│   ├── usePromptGeneration.ts # Prompt generation logic (attack/defense, word/kana mode)
+│   ├── useAnswerChecking.ts   # Answer validation and FSRS card updates
+│   ├── useCombat.ts           # Combat mechanics (player/enemy attacks, damage calculation)
+│   ├── useKanaCards.ts        # Persistent kana card management with localStorage
+│   ├── useManaTimer.ts        # Mana timer countdown logic
+│   └── useMobileViewport.ts   # Mobile viewport and keyboard handling
+├── store/
+│   ├── gameStore.ts           # Main Zustand store factory
+│   ├── middleware.ts          # Zustand middleware (dev logging)
+│   └── slices/
+│       ├── gameSlice.ts       # Game state slice (enemy, lives, combo, session, mana timer)
+│       └── quizSlice.ts       # Quiz state slice (prompt, answer, UI input)
 ├── data/
-│   └── kana.ts             # Kana character data (Hiragana & Katakana)
+│   └── kana.ts                # Kana character data (Hiragana & Katakana)
 ├── assets/
-│   ├── player/             # Player sprite animations (idle, attack, hit)
-│   ├── enemy/              # Enemy sprite animations (idle, attack, hit, die)
-│   └── projectile/         # Projectile sprite animations
+│   ├── player/                # Player sprite animations (idle, attack, hit, heal)
+│   ├── enemy/                 # Enemy sprite animations (idle, attack, hit, die, miss)
+│   └── projectile/            # Projectile sprite animations
 ├── utils/
-│   ├── fsrs.ts             # FSRS spaced repetition logic
-│   └── storage.ts          # localStorage persistence utilities
+│   ├── fsrs.ts                # FSRS spaced repetition logic
+│   ├── storage.ts             # localStorage persistence utilities
+│   ├── promptUtils.ts         # Prompt generation utilities (enemy generation, kana selection)
+│   └── wordBank.ts            # Word mode prompt generation
 └── types/
-    └── progress.ts          # TypeScript types for progress tracking
+    └── progress.ts            # TypeScript types for progress tracking
 ```
+
+## Architecture
+
+### State Management
+
+The application uses **Zustand** for global in-memory game state management, eliminating prop drilling and centralizing game logic.
+
+#### Store Structure
+
+The Zustand store is composed of two slices:
+
+1. **Game Slice** (`store/slices/gameSlice.ts`):
+   - Core game state: `currentEnemy`, `playerLives`, `promptAttempt`, `combo`
+   - Game status: `isGameOver`, `enemyDefeated`, `enemyWillDie`
+   - Session tracking: `sessionState` (enemiesDefeated, totalCorrect, totalAttempts)
+   - Timer state: `manaTimeRemaining`
+   - Actions: Enemy management, combo system, session updates
+
+2. **Quiz Slice** (`store/slices/quizSlice.ts`):
+   - Prompt state: `currentPrompt`, `currentWordString`, `promptType`
+   - Answer state: `previousAnswer`
+   - UI state: `userInput`
+   - Actions: Prompt updates, answer tracking, input management
+
+#### Custom Hooks
+
+Logic is organized into focused custom hooks:
+
+- **`useGameState`** (`hooks/useGameState.ts`):
+  - Creates and initializes the Zustand store for a game session
+  - Handles enemy defeat logic and spawning new enemies
+  - Returns the store hook for use in components
+
+- **`usePromptGeneration`** (`hooks/usePromptGeneration.ts`):
+  - Generates attack/defense prompts based on game state
+  - Handles word mode vs individual kana mode selection
+  - Uses FSRS algorithm to prioritize difficult kana
+  - Switches between attack/defense based on prompt attempt count
+
+- **`useAnswerChecking`** (`hooks/useAnswerChecking.ts`):
+  - Validates user input against current prompt
+  - Updates FSRS cards based on correctness
+  - Tracks session statistics (totalCorrect, totalAttempts)
+  - Stores previous answer for UI feedback
+
+- **`useCombat`** (`hooks/useCombat.ts`):
+  - Handles player and enemy attack logic
+  - Calculates damage with combo multipliers
+  - Manages combat animations and state updates
+  - Processes combat results (correct/incorrect answers)
+
+- **`useKanaCards`** (`hooks/useKanaCards.ts`):
+  - Manages persistent kana card data with localStorage
+  - Loads and saves FSRS card state
+  - Provides card update functionality
+
+- **`useManaTimer`** (`hooks/useManaTimer.ts`):
+  - Manages countdown timer based on combo level
+  - Resets combo when timer expires
+  - Handles timer pause/resume logic
+
+- **`useMobileViewport`** (`hooks/useMobileViewport.ts`):
+  - Handles mobile viewport adjustments
+  - Manages VisualViewport API for keyboard interactions
+  - Provides mobile detection utilities
+
+#### Component Structure
+
+- **`KanaQuiz.tsx`**: Main orchestrator component
+  - Initializes hooks and store
+  - Coordinates game flow
+  - Handles user input submission
+  - Minimal props (2): `session`, `onBack`
+
+- **`GameArea.tsx`**: Battle area + prompt UI
+  - Displays player and enemy sprites
+  - Shows current prompt and input field
+  - Accesses all state via Zustand selectors
+  - Props (5): `playerRef`, `enemyRef`, `onSubmit`, `onKeyPress`, `onInputFocus`
+
+- **`QuizHeader.tsx`**: Header bar component
+  - Shows previous answer feedback
+  - Back button
+  - Props (2): `onBack`, `headerRef`
+
+### Data Flow
+
+1. **Initialization**: `KanaQuiz` → `useGameState` → Creates Zustand store
+2. **Prompt Generation**: `usePromptGeneration` → Reads game state → Updates quiz slice
+3. **User Input**: `GameArea` → `KanaQuiz.handleSubmit` → `useAnswerChecking`
+4. **Combat Processing**: `useAnswerChecking` → `useCombat` → Updates game/quiz slices
+5. **State Updates**: All state changes go through Zustand actions
+6. **Persistence**: `useKanaCards` manages localStorage for FSRS cards
+
+### State Access Patterns
+
+- **Reading State**: `useStore((state) => state.value)` - Subscribes to changes
+- **Actions**: `useStore.getState().action()` - No subscription needed
 
 ## How It Works
 
@@ -126,12 +244,12 @@ src/
 2. **Combat Phase**:
    - **Attack Mode**: Kana characters are displayed (length increases with enemies defeated)
    - Type the romaji equivalent
-   - Correct answers deal 1 damage to the enemy and trigger attack animations
+   - Correct answers deal damage (scaled by combo multiplier) to the enemy and trigger attack animations
    - Incorrect answers don't deal damage but still count toward enemy's attack counter
    - After X attack attempts (determined by enemy's attack stat), switch to defense mode
 3. **Defense Mode**:
    - Longer prompts appear (length = enemies defeated + enemy's defense stat)
-   - Correct answers block the attack - no damage taken
+   - Correct answers block the attack - no damage taken, combo increases
    - Incorrect answers cause player to lose 1 life
    - After defense prompt, return to attack mode
 4. **Enemy Defeat**:

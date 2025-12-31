@@ -84,7 +84,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     useStore,
   });
 
-  const { checkAnswers } = useAnswerChecking({
+  const { checkAnswers, validateInput } = useAnswerChecking({
     kanaCards,
     updateKanaCards,
     useStore,
@@ -99,10 +99,11 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const { isMobile, visualViewportHeight, headerRef } = useMobileViewport();
 
   // Handle answer submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (userInput.trim() && currentPrompt.length > 0 && !isGameOver && !enemyDefeated && !enemyWillDie) {
-      checkAnswers(userInput, (result) => {
+  const handleSubmit = (e?: React.FormEvent, inputValue?: string) => {
+    e?.preventDefault();
+    const valueToSubmit = inputValue ?? userInput;
+    if (valueToSubmit.trim() && currentPrompt.length > 0 && !isGameOver && !enemyDefeated && !enemyWillDie) {
+      checkAnswers(valueToSubmit, (result) => {
         // Increment prompt attempt (regardless of prompt type or correctness)
         incrementPromptAttempt();
 
@@ -124,10 +125,16 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     }
   };
 
-  const handleInputFocus = () => {
-    // Scroll to top on mobile when input is focused
-    if (window.innerWidth < 768) {
-      // window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Handle input change with real-time validation
+  const handleInputChange = (value: string) => {
+    setUserInput(value);
+
+    // Check if input is correct and complete
+    if (value.trim() && currentPrompt.length > 0 && !isGameOver && !enemyDefeated && !enemyWillDie) {
+      if (validateInput(value)) {
+        // Input is fully correct, auto-submit
+        handleSubmit(undefined, value);
+      }
     }
   };
 
@@ -158,7 +165,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
           enemyRef={enemyRef}
           onSubmit={handleSubmit}
           onKeyPress={handleKeyPress}
-          onInputFocus={handleInputFocus}
+          onInputChange={handleInputChange}
           useStore={useStore}
         />
       )}
