@@ -60,7 +60,7 @@ export function usePromptGeneration({
         }
 
         // Max 3 prompts for defense, scaling by enemies
-        const promptLength = Math.min(sessionState.enemiesDefeated + 1, 3);
+        const promptLength = Math.min(sessionState.enemiesDefeated + 1, 2);
         // Shuffle and take sample
         const shuffled = [...bottomKana].sort(() => Math.random() - 0.5);
         return shuffled.slice(0, Math.min(promptLength, shuffled.length));

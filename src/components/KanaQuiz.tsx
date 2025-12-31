@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { getComboConfig } from '~/constants';
+import { getComboConfig, getEffectiveTimerDuration } from '~/constants';
 import { useAnswerChecking } from '~/hooks/useAnswerChecking';
 import { useCombat } from '~/hooks/useCombat';
 import { useGameState } from '~/hooks/useGameState';
@@ -69,7 +69,8 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     isGameOver,
     enemyWillDie,
     onTimerExpire: handleTimerExpire,
-    timerDuration: comboConfig.timerMs,
+    // Add some time additional time for longer prompts
+    timerDuration: getEffectiveTimerDuration(comboConfig, currentPrompt.length),
   });
 
   // Sync manaTimeRemaining to store

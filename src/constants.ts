@@ -19,3 +19,11 @@ export function getComboConfig(comboCount: number): ComboConfig {
     COMBO_CONFIGS[COMBO_CONFIGS.length - 1]!
   );
 }
+
+// Helper function to get effective timer duration based on combo config and prompt length
+export function getEffectiveTimerDuration(
+  comboConfig: ComboConfig,
+  promptLength: number
+): number {
+  return comboConfig.timerMs + promptLength * 500;
+}

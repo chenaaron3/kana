@@ -66,6 +66,7 @@ export default function GameArea({
               enemySpriteRef={enemyRef.current ? { current: enemyRef.current.getSpriteElement() } as React.RefObject<HTMLElement | null> : undefined}
               combo={combo}
               manaTimeRemaining={manaTimeRemaining}
+              currentPromptLength={currentPrompt.length}
             />
           </div>
 

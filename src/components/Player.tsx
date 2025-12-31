@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Avatar, AvatarFallback } from '~/components/ui/8bit/avatar';
 import ManaBar from '~/components/ui/8bit/mana-bar';
-import { getComboConfig } from '~/constants';
+import { getComboConfig, getEffectiveTimerDuration } from '~/constants';
 
 import Fire from './Fire';
 import FloatingText from './FloatingText';
@@ -23,6 +23,7 @@ interface PlayerProps {
     enemySpriteRef?: React.RefObject<HTMLElement | null>;
     combo?: number; // Combo count for fire effect
     manaTimeRemaining?: number; // Time remaining in milliseconds
+    currentPromptLength?: number; // Length of current prompt for effective timer calculation
 }
 
 // Import all frame images using Vite's glob import
@@ -61,7 +62,7 @@ const ANIMATION_CONFIG = {
     heal: { frames: healFrames.length, fps: 10 },
 };
 
-const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpriteRef, combo = 0, manaTimeRemaining = 0 }, ref) => {
+const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpriteRef, combo = 0, manaTimeRemaining = 0, currentPromptLength = 0 }, ref) => {
     const [state, setState] = useState<PlayerState>('idle');
     const [currentFrame, setCurrentFrame] = useState(0);
     const [showProjectile, setShowProjectile] = useState(false);
@@ -170,7 +171,8 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpri
     const currentImage = getCurrentFrameImage();
     const comboConfig = getComboConfig(combo);
     const hasEffect = comboConfig.multiplier > 1;
-    const manaPercentage = manaTimeRemaining ? (manaTimeRemaining / comboConfig.timerMs) * 100 : 0;
+    const effectiveTimerDuration = getEffectiveTimerDuration(comboConfig, currentPromptLength);
+    const manaPercentage = manaTimeRemaining ? (manaTimeRemaining / effectiveTimerDuration) * 100 : 0;
     // Determine projectile type based on combo: special if combo >= 3, basic otherwise
     const projectileType = combo >= 3 ? 'special' : 'basic';
 
