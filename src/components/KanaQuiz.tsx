@@ -83,7 +83,12 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const [currentWordString, setCurrentWordString] = useState<string | null>(null);
   const [userInput, setUserInput] = useState("");
   const [previousAnswer, setPreviousAnswer] = useState<PreviousAnswer | null>(null);
+  const [visualViewportHeight, setVisualViewportHeight] = useState<number>(0);
+  const [headerHeight, setHeaderHeight] = useState<number>(0);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const enemyRef = useRef<EnemyRef>(null);
   const playerRef = useRef<PlayerRef>(null);
 
@@ -217,6 +222,83 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   useEffect(() => {
     setPreviousAnswer(null);
   }, [sessionState.selectedKanaIds]);
+
+  // Detect mobile and measure header height
+  useEffect(() => {
+    const updateMobileState = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    const updateHeaderHeight = () => {
+      if (headerRef.current) {
+        setHeaderHeight(headerRef.current.offsetHeight);
+      }
+    };
+
+    updateMobileState();
+    updateHeaderHeight();
+
+    // Re-measure when previousAnswer changes (affects header height)
+    const observer = new ResizeObserver(() => {
+      updateHeaderHeight();
+    });
+    if (headerRef.current) {
+      observer.observe(headerRef.current);
+    }
+
+    const handleResize = () => {
+      updateMobileState();
+      updateHeaderHeight();
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [previousAnswer]);
+
+  // Use VisualViewport API to handle keyboard and keep header visible (mobile only)
+  useEffect(() => {
+    if (!isMobile) return;
+
+    // Check if VisualViewport API is supported
+    if (!window.visualViewport) {
+      // Fallback: use window height
+      const updateHeight = () => {
+        setVisualViewportHeight(window.innerHeight);
+      };
+      updateHeight();
+      window.addEventListener('resize', updateHeight);
+      return () => window.removeEventListener('resize', updateHeight);
+    }
+
+    const viewport = window.visualViewport;
+
+    const updateViewport = () => {
+      // Update container height to match visual viewport
+      setVisualViewportHeight(viewport.height);
+
+      // Ensure header stays at top of visual viewport
+      // Use offsetTop to position header relative to visual viewport
+      if (headerRef.current) {
+        const offsetTop = viewport.offsetTop;
+        headerRef.current.style.transform = `translateY(${offsetTop}px)`;
+      }
+    };
+
+    // Initial update
+    updateViewport();
+
+    // Listen to visual viewport changes (keyboard open/close, zoom, etc.)
+    viewport.addEventListener('resize', updateViewport);
+    viewport.addEventListener('scroll', updateViewport);
+
+    return () => {
+      viewport.removeEventListener('resize', updateViewport);
+      viewport.removeEventListener('scroll', updateViewport);
+    };
+  }, [isMobile]);
 
   // Auto focus input when prompt changes
   useEffect(() => {
@@ -443,14 +525,24 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   };
 
   return (
-    <div className="flex max-h-dvh md:h-dvh flex-col bg-background">
+    <div
+      ref={containerRef}
+      className="flex flex-col bg-background overflow-hidden"
+      style={{
+        height: isMobile && visualViewportHeight > 0 ? `${visualViewportHeight}px` : '100dvh',
+        maxHeight: isMobile && visualViewportHeight > 0 ? `${visualViewportHeight}px` : '100dvh'
+      }}
+    >
       {/* Header Bar - Always visible with Back button and Previous Answer */}
-      <div className={`sticky top-0 z-10 border-b ${previousAnswer
-        ? previousAnswer.isCorrect
-          ? "bg-green-600 border-green-600"
-          : "bg-red-600 border-red-600"
-        : "bg-amber-50 border-border shadow-sm"
-        }`}>
+      <div
+        ref={headerRef}
+        className={`${isMobile ? 'fixed' : 'sticky'} top-0 left-0 right-0 z-10 border-b ${previousAnswer
+          ? previousAnswer.isCorrect
+            ? "bg-green-600 border-green-600"
+            : "bg-red-600 border-red-600"
+          : "bg-amber-50 border-border shadow-sm"
+          }`}
+      >
         <div className="relative mx-auto max-w-4xl p-1 md:p-3">
           <div className="flex items-center justify-between gap-4">
             {/* Back Button */}
@@ -491,7 +583,10 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
 
       {/* Mobile-only: Hearts and Score below navbar */}
       {!isGameOver && (
-        <div className="md:hidden bg-card px-4 py-2 mb-4">
+        <div
+          className="md:hidden bg-card px-4 py-2 mb-4"
+          style={{ paddingTop: isMobile ? `${headerHeight}px` : '0' }}
+        >
           <div className="mx-auto max-w-4xl flex items-center justify-between">
             <PlayerStats
               playerLives={playerLives}
@@ -505,7 +600,10 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
 
       {/* Main Quiz Area */}
       {!isGameOver && (
-        <div className="relative flex-1 flex flex-col min-h-0">
+        <div
+          className="relative flex-1 flex flex-col min-h-0"
+          style={{ paddingTop: isMobile ? `${headerHeight}px` : '0' }}
+        >
           {/* Player and Enemy - flex grow */}
           <div className="flex-1 flex items-end px-4 pointer-events-none min-h-0">
             <div className="w-full max-w-4xl mx-auto flex">
