@@ -92,7 +92,7 @@ export default function KanaSectionCard({
         <Card>
             <Collapsible defaultOpen>
                 <CardHeader className="p-4 md:p-6">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0">
                         <CollapsibleTrigger className="flex flex-col items-start gap-1 text-left w-auto">
                             <CardTitle className="text-lg md:text-2xl text-center md:text-left w-full">{title}</CardTitle>
                             <CardDescription className="text-xs md:text-sm w-full text-center md:text-left">
