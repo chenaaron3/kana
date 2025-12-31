@@ -61,9 +61,16 @@ export default function KanaSectionCard({
                     const groupKey = `${group.name}-${group.characters[0]?.type ?? ""}`;
                     const isSelected = selectedGroups.has(groupKey);
                     return (
-                        <div key={groupKey} className="flex flex-row md:flex-col md:min-w-[70px] gap-3 md:gap-0">
+                        <div
+                            key={groupKey}
+                            className="flex flex-row md:flex-col md:min-w-[70px] gap-3 md:gap-0 cursor-pointer"
+                            onClick={() => onToggleGroup(groupKey)}
+                        >
                             {/* Checkbox on left (mobile) or top (desktop) */}
-                            <div className="flex items-center md:justify-center md:mb-1 scale-75 md:scale-100">
+                            <div
+                                className="flex items-center md:justify-center md:mb-1 scale-75 md:scale-100"
+                                onClick={(e) => e.stopPropagation()}
+                            >
                                 <Checkbox
                                     checked={isSelected}
                                     onCheckedChange={() => onToggleGroup(groupKey)}
