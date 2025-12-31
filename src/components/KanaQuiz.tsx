@@ -436,7 +436,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   };
 
   return (
-    <div className="flex max-h-screen md:h-screen flex-col bg-background">
+    <div className="flex max-h-dvh md:h-dvh flex-col bg-background">
       {/* Header Bar - Always visible with Back button and Previous Answer */}
       <div className={`sticky top-0 z-10 border-b ${previousAnswer
         ? previousAnswer.isCorrect
