@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { useStore } from 'zustand';
 import { getComboConfig } from '~/constants';
 import { useAnswerChecking } from '~/hooks/useAnswerChecking';
 import { useCombat } from '~/hooks/useCombat';
