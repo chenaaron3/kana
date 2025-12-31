@@ -530,7 +530,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
           </div>
 
           {/* Current Prompt - centered, positioned for keyboard */}
-          <div className="fixed bottom-0 left-0 right-0 z-10 w-full max-w-2xl px-4 mx-auto pb-4 md:relative md:z-auto md:bottom-auto md:pb-0 md:shrink-0">
+          <div className="z-10 w-full max-w-2xl px-4 mx-auto pb-4 md:relative md:z-auto md:bottom-auto md:pb-0 md:shrink-0">
             <Card>
               <CardContent className={`relative p-3 md:p-6 ${enemyWillDie
                 ? 'bg-blue-100/60'
