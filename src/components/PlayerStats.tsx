@@ -16,7 +16,7 @@ export default function PlayerStats({
         <>
             {/* Player Lives Display */}
             {playerLives !== undefined && (
-                <div className="absolute top-1 left-2 flex flex-col md:flex-row gap-1">
+                <div className="absolute top-1 left-2 md:left-4 md:top-4 flex flex-col md:flex-row gap-1">
                     {Array.from({ length: 3 }).map((_, i) => (
                         <img
                             key={i}
@@ -33,7 +33,7 @@ export default function PlayerStats({
 
             {/* Accuracy Score */}
             {totalAttempts > 0 && (
-                <div className="hidden md:block absolute top-4 right-4 retro text-xs text-muted-foreground">
+                <div className="hidden md:block absolute top-4 right-4 retro text-xs md:text-base text-muted-foreground">
                     {totalCorrect} / {totalAttempts}
                 </div>
             )}
