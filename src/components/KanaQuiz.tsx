@@ -83,10 +83,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const [currentWordString, setCurrentWordString] = useState<string | null>(null);
   const [userInput, setUserInput] = useState("");
   const [previousAnswer, setPreviousAnswer] = useState<PreviousAnswer | null>(null);
-  const [headerHeight, setHeaderHeight] = useState<number>(0);
-  const [isMobile, setIsMobile] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
   const enemyRef = useRef<EnemyRef>(null);
   const playerRef = useRef<PlayerRef>(null);
 
@@ -220,26 +217,6 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   useEffect(() => {
     setPreviousAnswer(null);
   }, [sessionState.selectedKanaIds]);
-
-  // Measure header height for mobile padding and track mobile state
-  useEffect(() => {
-    const updateHeaderHeight = () => {
-      if (headerRef.current) {
-        setHeaderHeight(headerRef.current.offsetHeight);
-      }
-    };
-    const updateMobileState = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    const handleResize = () => {
-      updateHeaderHeight();
-      updateMobileState();
-    };
-    updateHeaderHeight();
-    updateMobileState();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [previousAnswer]); // Re-measure when previousAnswer changes (affects header height)
 
   // Auto focus input when prompt changes
   useEffect(() => {
@@ -466,17 +443,14 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   };
 
   return (
-    <div className="flex h-dvh md:h-dvh flex-col bg-background overflow-hidden">
+    <div className="flex max-h-dvh md:h-dvh flex-col bg-background">
       {/* Header Bar - Always visible with Back button and Previous Answer */}
-      <div
-        ref={headerRef}
-        className={`fixed md:sticky top-0 left-0 right-0 z-10 border-b ${previousAnswer
-          ? previousAnswer.isCorrect
-            ? "bg-green-600 border-green-600"
-            : "bg-red-600 border-red-600"
-          : "bg-amber-50 border-border shadow-sm"
-          }`}
-      >
+      <div className={`sticky top-0 z-10 border-b ${previousAnswer
+        ? previousAnswer.isCorrect
+          ? "bg-green-600 border-green-600"
+          : "bg-red-600 border-red-600"
+        : "bg-amber-50 border-border shadow-sm"
+        }`}>
         <div className="relative mx-auto max-w-4xl p-1 md:p-3">
           <div className="flex items-center justify-between gap-4">
             {/* Back Button */}
@@ -517,10 +491,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
 
       {/* Mobile-only: Hearts and Score below navbar */}
       {!isGameOver && (
-        <div
-          className="md:hidden bg-card px-4 py-2 mb-4"
-          style={{ paddingTop: `${headerHeight}px` }}
-        >
+        <div className="md:hidden bg-card px-4 py-2 mb-4">
           <div className="mx-auto max-w-4xl flex items-center justify-between">
             <PlayerStats
               playerLives={playerLives}
@@ -534,10 +505,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
 
       {/* Main Quiz Area */}
       {!isGameOver && (
-        <div
-          className="relative flex-1 flex flex-col min-h-0"
-          style={{ paddingTop: isMobile ? `${headerHeight}px` : '0' }}
-        >
+        <div className="relative flex-1 flex flex-col min-h-0">
           {/* Player and Enemy - flex grow */}
           <div className="flex-1 flex items-end px-4 pointer-events-none min-h-0">
             <div className="w-full max-w-4xl mx-auto flex">
