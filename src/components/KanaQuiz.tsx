@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import backgroundImage from '~/assets/background.png';
 import { getComboConfig, getEffectiveTimerDuration } from '~/constants';
 import { useAnswerChecking } from '~/hooks/useAnswerChecking';
 import { useCombat } from '~/hooks/useCombat';
@@ -131,37 +132,55 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   return (
     <div
       ref={containerRef}
-      className="flex flex-col bg-background overflow-hidden"
+      className="flex flex-col bg-background overflow-hidden relative"
       style={{
         height: isMobile && visualViewportHeight > 0 ? `${visualViewportHeight}px` : '100dvh',
         maxHeight: isMobile && visualViewportHeight > 0 ? `${visualViewportHeight}px` : '100dvh'
       }}
     >
-      {/* Header Bar */}
-      <QuizHeader
-        onBack={onBack}
-        headerRef={headerRef as React.RefObject<HTMLDivElement>}
-        useStore={useStore}
+      {/* Background Image */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          opacity: 1,
+          zIndex: 0,
+          maskImage: 'radial-gradient(circle at 50% 30%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,1) 60%)',
+          WebkitMaskImage: 'radial-gradient(circle at 50% 30%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,1) 60%)',
+        }}
       />
 
-      {/* Main Quiz Area */}
-      {!isGameOver && (
-        <GameArea
-          playerRef={playerRef}
-          enemyRef={enemyRef}
-          onSubmit={handleSubmit}
-          onKeyPress={handleKeyPress}
+      {/* Content Container */}
+      <div className="relative z-10 flex flex-col flex-1">
+        {/* Header Bar */}
+        <QuizHeader
+          onBack={onBack}
+          headerRef={headerRef as React.RefObject<HTMLDivElement>}
           useStore={useStore}
         />
-      )}
 
-      {/* Game Over Screen */}
-      {isGameOver && (
-        <GameOver
-          useStore={useStore}
-          onRestart={handleRestart}
-        />
-      )}
+        {/* Main Quiz Area */}
+        {!isGameOver && (
+          <GameArea
+            playerRef={playerRef}
+            enemyRef={enemyRef}
+            onSubmit={handleSubmit}
+            onKeyPress={handleKeyPress}
+            useStore={useStore}
+          />
+        )}
+
+        {/* Game Over Screen */}
+        {isGameOver && (
+          <GameOver
+            useStore={useStore}
+            onRestart={handleRestart}
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -91,10 +91,10 @@ export default function GameArea({
         <Card>
           <CardContent
             className={`relative p-3 md:p-6 ${enemyWillDie
-              ? 'bg-blue-100/60'
+              ? 'bg-blue-100'
               : promptType === 'defense'
-                ? 'bg-red-100/60'
-                : ''
+                ? 'bg-red-100'
+                : 'bg-white'
               }`}
           >
             {/* Player Stats - top corners (desktop) / inline (mobile) */}
