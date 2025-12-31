@@ -444,7 +444,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
           : "bg-red-600 border-red-600"
         : "bg-amber-50 border-border shadow-sm"
         }`}>
-        <div className="relative mx-auto max-w-4xl px-4 py-3">
+        <div className="relative mx-auto max-w-4xl p-1 md:p-3">
           <div className="flex items-center justify-between gap-4">
             {/* Back Button */}
             <Button
@@ -452,12 +452,12 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
               variant={previousAnswer ? "ghost" : "outline"}
               className={previousAnswer ? "text-white hover:bg-white/20 border-white" : ""}
             >
-              Back
+              Exit
             </Button>
 
-            {/* Previous Answer - Absolutely centered */}
+            {/* Previous Answer - Right aligned on mobile, centered on desktop */}
             {previousAnswer && (
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col items-end md:left-1/2 md:-translate-x-1/2 md:items-center">
                 <div className="flex items-center gap-2 text-white">
                   <span className="text-base md:text-xl font-semibold">
                     {previousAnswer.kana.map(k => k.character).join('')} = {previousAnswer.kana.map(k => k.romaji[0]).join('')}
@@ -566,7 +566,8 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                       value={userInput}
                       onChange={(e) => setUserInput(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      className="max-w-2xl text-lg md:text-2xl h-12 md:h-14"
+                      className="max-w-2xl text-base md:text-2xl h-12 md:h-14"
+                      style={{ fontSize: '16px' }}
                       autoFocus
                       disabled={isGameOver || enemyDefeated || enemyWillDie}
                     />
