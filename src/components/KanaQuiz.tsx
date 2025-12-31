@@ -222,6 +222,21 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     setPreviousAnswer(null);
   }, [sessionState.selectedKanaIds]);
 
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    // Check on mount
+    checkMobile();
+
+    // Listen for resize events
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Use VisualViewport API to handle keyboard and keep header visible (mobile only)
   useEffect(() => {
     if (!isMobile) return;
