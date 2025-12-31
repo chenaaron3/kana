@@ -30,9 +30,13 @@ export function useManaTimer({
     if (currentPromptLength > 0 && !isGameOver && !enemyWillDie) {
       const interval = setInterval(() => {
         setManaTimeRemaining((prev) => {
+          // If already at 0, don't decrement or call onTimerExpire again
+          if (prev <= 0) {
+            return 0;
+          }
           const newTime = Math.max(0, prev - 500);
           if (newTime <= 0) {
-            // Timer expired - reset combo
+            // Timer expired - reset combo (only called once when crossing from >0 to 0)
             onTimerExpire();
             return 0;
           }

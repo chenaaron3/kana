@@ -66,13 +66,21 @@ export const createGameSlice =
       set({ enemyWillDie: willDie });
     },
     setCombo: (combo) => {
-      set({ combo });
+      set((state) => {
+        // Only update if combo value actually changed to prevent unnecessary updates
+        if (state.combo === combo) return state;
+        return { combo };
+      });
     },
     incrementCombo: () => {
       set((state) => ({ combo: state.combo + 1 }));
     },
     resetCombo: () => {
-      set({ combo: 0 });
+      set((state) => {
+        // Only update if combo is not already 0 to prevent unnecessary updates
+        if (state.combo === 0) return state;
+        return { combo: 0 };
+      });
     },
     updateSession: (updates) => {
       set((state) => ({

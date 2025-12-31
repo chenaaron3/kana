@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { createGameStore } from "~/store/gameStore";
 
 import type { Session } from "~/types/progress";
@@ -24,17 +24,34 @@ export function useGameState({
   const enemyDefeated = useStore((state) => state.enemyDefeated);
   const spawnNewEnemy = useStore.getState().spawnNewEnemy;
 
+  // Track timeout to prevent duplicate calls
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Handle enemy defeat - spawn new enemy
   useEffect(() => {
     if (enemyDefeated) {
+      // Clear any existing timeout to prevent duplicate calls
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
       enemyRef.current?.playDie();
 
       // Spawn new enemy and increment enemies defeated after 2 seconds
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
+        timeoutRef.current = null;
         spawnNewEnemy();
         onEnemyDefeated();
       }, 2000);
     }
+
+    // Cleanup function to clear timeout on unmount or when dependencies change
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
   }, [enemyDefeated, enemyRef, onEnemyDefeated, spawnNewEnemy]);
 
   // Return store hook

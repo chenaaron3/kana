@@ -123,6 +123,8 @@ export function usePromptGeneration({
     // Don't generate prompt if enemy is defeated (during 2-second transition) or will die
     if (enemyDefeated || enemyWillDie) return;
 
+    console.log(promptAttempt, currentEnemy.attack);
+
     // Switch when promptAttempt is a multiple of enemy.attack (and > 0)
     let newPromptType: PromptType = "attack";
     if (promptAttempt > 0 && promptAttempt % currentEnemy.attack === 0) {
