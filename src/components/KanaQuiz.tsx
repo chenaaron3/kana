@@ -543,20 +543,6 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
             )}
           </div>
         </div>
-
-        {/* Mobile-only: Hearts and Score below navbar */}
-        {!isGameOver && (
-          <div className="md:hidden bg-white px-4 py-2">
-            <div className="mx-auto max-w-4xl flex items-center justify-between">
-              <PlayerStats
-                playerLives={playerLives}
-                totalCorrect={sessionState.totalCorrect}
-                totalAttempts={sessionState.totalAttempts}
-                variant="mobile"
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Main Quiz Area */}
@@ -603,15 +589,14 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                   ? 'bg-red-100/60'
                   : ''
                 }`}>
-                {/* Player Stats - top corners (desktop only) */}
+                {/* Player Stats - top corners (desktop) / inline (mobile) */}
                 <PlayerStats
                   playerLives={playerLives}
                   totalCorrect={sessionState.totalCorrect}
                   totalAttempts={sessionState.totalAttempts}
-                  variant="desktop"
                 />
                 <div className="space-y-6 text-center">
-                  <div className="flex items-center justify-center flex-wrap min-h-[30px]">
+                  <div className="flex items-center justify-center flex-wrap min-h-[20px] md:min-h-[30px]">
                     {enemyWillDie ? (
                       <Kbd className="text-xl md:text-3xl font-bold py-2">
                         DEFEATED

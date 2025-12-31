@@ -5,37 +5,24 @@ interface PlayerStatsProps {
     playerLives?: number;
     totalCorrect: number;
     totalAttempts: number;
-    variant?: 'mobile' | 'desktop';
 }
 
 export default function PlayerStats({
     playerLives,
     totalCorrect,
     totalAttempts,
-    variant = 'mobile',
 }: PlayerStatsProps) {
-    const isMobile = variant === 'mobile';
-    const isDesktop = variant === 'desktop';
-
     return (
         <>
             {/* Player Lives Display */}
             {playerLives !== undefined && (
-                <div
-                    className={
-                        isMobile
-                            ? 'mt-1 flex gap-1'
-                            : isDesktop
-                                ? 'hidden md:flex absolute top-4 left-4 gap-1'
-                                : ''
-                    }
-                >
+                <div className="absolute top-1 left-2 flex flex-col md:flex-row gap-1">
                     {Array.from({ length: 3 }).map((_, i) => (
                         <img
                             key={i}
                             src={i < playerLives ? fullHeart : emptyHeart}
                             alt={i < playerLives ? 'Full heart' : 'Empty heart'}
-                            className="w-6 h-6"
+                            className="w-3 md:w-6 h-3 md:h-6"
                             style={{
                                 imageRendering: 'pixelated',
                             }}
@@ -46,15 +33,7 @@ export default function PlayerStats({
 
             {/* Accuracy Score */}
             {totalAttempts > 0 && (
-                <div
-                    className={
-                        isMobile
-                            ? 'retro text-sm text-muted-foreground'
-                            : isDesktop
-                                ? 'retro hidden md:block absolute top-4 right-4 text-sm text-muted-foreground'
-                                : ''
-                    }
-                >
+                <div className="hidden md:block absolute top-4 right-4 retro text-xs text-muted-foreground">
                     {totalCorrect} / {totalAttempts}
                 </div>
             )}

@@ -184,7 +184,7 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpri
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[100px] md:max-w-[150px]"
+                        className="absolute top-4 md:top-0 left-1/2 -translate-x-1/2 w-full max-w-[100px] md:max-w-[150px]"
                     >
                         <div className="relative pl-4 md:pl-5">
                             {/* Combo Avatar */}
