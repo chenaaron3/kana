@@ -431,6 +431,13 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     }
   };
 
+  const handleInputFocus = () => {
+    // Scroll to top on mobile when input is focused
+    if (window.innerWidth < 768) { // Mobile breakpoint
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const handleRestart = () => {
     onBack();
   };
@@ -566,6 +573,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
                       value={userInput}
                       onChange={(e) => setUserInput(e.target.value)}
                       onKeyPress={handleKeyPress}
+                      onFocus={handleInputFocus}
                       className="max-w-2xl text-base md:text-2xl h-12 md:h-14"
                       style={{ fontSize: '16px' }}
                       autoFocus
