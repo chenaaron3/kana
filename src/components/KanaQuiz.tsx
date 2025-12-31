@@ -516,7 +516,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   const handleInputFocus = () => {
     // Scroll to top on mobile when input is focused
     if (window.innerWidth < 768) { // Mobile breakpoint
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -598,8 +598,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
       {/* Main Quiz Area */}
       {!isGameOver && (
         <div
-          className="relative flex-1 flex flex-col min-h-0"
-          style={{ paddingTop: isMobile ? `${headerHeight}px` : '0' }}
+          className="fixed bottom-0 md:relative flex-1 flex flex-col min-h-0"
         >
           {/* Player and Enemy - flex grow */}
           <div className="flex-1 flex items-end px-4 pointer-events-none min-h-0">
