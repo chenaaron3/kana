@@ -10,7 +10,7 @@ interface GameOverProps {
 
 export default function GameOver({ enemiesDefeated, totalCorrect, totalAttempts, onRestart }: GameOverProps) {
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
             <Card className="w-full max-w-md">
                 <CardContent className="pt-6">
                     <div className="space-y-6 text-center">

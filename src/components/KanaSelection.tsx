@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import KanaChart from '~/components/KanaChart';
 import KanaSectionCard from '~/components/KanaSectionCard';
 import { Button } from '~/components/ui/8bit/button';
-import { Card, CardContent } from '~/components/ui/8bit/card';
+import { Card } from '~/components/ui/8bit/card';
 import { TooltipProvider } from '~/components/ui/tooltip';
 import {
   allKanaGroups, hiraganaCombinationGroups, hiraganaGroups, katakanaCombinationGroups,
