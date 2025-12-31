@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { getComboConfig } from '~/constants';
 import { useAnswerChecking } from '~/hooks/useAnswerChecking';
 import { useCombat } from '~/hooks/useCombat';
@@ -11,6 +11,8 @@ import { usePromptGeneration } from '~/hooks/usePromptGeneration';
 import GameOver from './GameOver';
 import GameArea from './quiz/GameArea';
 import QuizHeader from './quiz/QuizHeader';
+
+import type { GameStore } from '~/store/gameStore';
 
 import type { Session } from "~/types/progress";
 import type { EnemyRef } from './Enemy';
@@ -32,23 +34,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     selectedKanaIds: session.selectedKanaIds,
   });
 
-  const {
-    currentEnemy,
-    playerLives,
-    promptAttempt,
-    isGameOver,
-    enemyDefeated,
-    enemyWillDie,
-    combo,
-    sessionState,
-    setPlayerLives,
-    setPromptAttempt,
-    setIsGameOver,
-    setEnemyDefeated,
-    setEnemyWillDie,
-    setCombo,
-    setSessionState,
-  } = useGameState({
+  const { useStore } = useGameState({
     initialSession: session,
     enemyRef,
     onEnemyDefeated: () => {
@@ -56,83 +42,61 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     },
   });
 
+  // Get state from store
+  const combo = useStore((state: GameStore) => state.combo);
+  const currentPrompt = useStore((state: GameStore) => state.currentPrompt);
+  const promptType = useStore((state: GameStore) => state.promptType);
+  const isGameOver = useStore((state: GameStore) => state.isGameOver);
+  const enemyDefeated = useStore((state: GameStore) => state.enemyDefeated);
+  const enemyWillDie = useStore((state: GameStore) => state.enemyWillDie);
+  const userInput = useStore((state: GameStore) => state.userInput);
+  const setUserInput = useStore.getState().setUserInput;
+  const incrementPromptAttempt = useStore.getState().incrementPromptAttempt;
+
   // Memoize timer expire callback
+  const resetCombo = useStore.getState().resetCombo;
   const handleTimerExpire = useCallback(() => {
-    setCombo(0);
-  }, [setCombo]);
+    resetCombo();
+  }, [resetCombo]);
 
   // Mana timer hook - get timer duration based on current combo level
   const comboConfig = getComboConfig(combo);
 
-  // We need to initialize currentPrompt for useManaTimer, but it comes from usePromptGeneration
-  // So we'll use a ref to track it, or initialize with empty array and update
-  const [currentPromptForTimer, setCurrentPromptForTimer] = useState<any[]>([]);
+  const setManaTimeRemaining = useStore.getState().setManaTimeRemaining;
 
   const { manaTimeRemaining, resetManaTimer } = useManaTimer({
     combo,
-    currentPromptLength: currentPromptForTimer.length,
+    currentPromptLength: currentPrompt.length,
     isGameOver,
     enemyWillDie,
     onTimerExpire: handleTimerExpire,
     timerDuration: comboConfig.timerMs,
   });
 
-  const {
-    currentPrompt,
-    currentWordString,
-    promptType,
-    setCurrentPrompt,
-  } = usePromptGeneration({
+  // Sync manaTimeRemaining to store
+  useEffect(() => {
+    setManaTimeRemaining(manaTimeRemaining);
+  }, [manaTimeRemaining, setManaTimeRemaining]);
+
+  usePromptGeneration({
     kanaCards,
-    sessionState,
-    promptAttempt,
-    currentEnemy,
-    enemyDefeated,
-    enemyWillDie,
     resetManaTimer,
+    useStore,
   });
 
-  // Sync currentPrompt for useManaTimer
-  // This is a workaround - ideally useManaTimer would accept currentPrompt directly
-  // but we need to call hooks in order
-  useEffect(() => {
-    setCurrentPromptForTimer(currentPrompt);
-  }, [currentPrompt]);
-
-  // Update prompt generation with resetManaTimer
-  // We need to recreate the prompt generation hook call, but since hooks can't be conditionally called,
-  // we'll pass resetManaTimer through a ref or handle it differently
-  // Actually, let's restructure - we'll call usePromptGeneration after useManaTimer
-  // But that violates rules of hooks. Let's use a different approach - pass resetManaTimer as a prop
-  // Actually, looking at the code, resetManaTimer is stable, so we can just pass it directly
-  // Let me fix this by restructuring the hooks properly
-
-  const { checkAnswers, previousAnswer } = useAnswerChecking({
+  const { checkAnswers } = useAnswerChecking({
     kanaCards,
-    currentPrompt,
-    currentWordString,
-    sessionState,
     updateKanaCards,
-    setSessionState,
-    selectedKanaIds: sessionState.selectedKanaIds,
+    useStore,
   });
 
   const { handleCombatResult } = useCombat({
     enemyRef,
     playerRef,
-    combo,
-    setCombo,
-    setEnemyWillDie,
-    setEnemyDefeated,
-    setCurrentPrompt,
-    setPlayerLives,
-    setIsGameOver,
+    useStore,
   });
 
   const { isMobile, visualViewportHeight, headerRef } = useMobileViewport();
-
-  // User input state
-  const [userInput, setUserInput] = useState("");
 
   // Handle answer submission
   const handleSubmit = (e: React.FormEvent) => {
@@ -140,7 +104,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     if (userInput.trim() && currentPrompt.length > 0 && !isGameOver && !enemyDefeated && !enemyWillDie) {
       checkAnswers(userInput, (result) => {
         // Increment prompt attempt (regardless of prompt type or correctness)
-        setPromptAttempt((prev) => prev + 1);
+        incrementPromptAttempt();
 
         // Handle combat result
         handleCombatResult(result.allCorrect, promptType);
@@ -182,10 +146,9 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     >
       {/* Header Bar */}
       <QuizHeader
-        previousAnswer={previousAnswer}
         onBack={onBack}
         headerRef={headerRef as React.RefObject<HTMLDivElement>}
-        isMobile={isMobile}
+        useStore={useStore}
       />
 
       {/* Main Quiz Area */}
@@ -193,31 +156,17 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
         <GameArea
           playerRef={playerRef}
           enemyRef={enemyRef}
-          promptType={promptType}
-          currentEnemy={currentEnemy}
-          promptAttempt={promptAttempt}
-          combo={combo}
-          manaTimeRemaining={manaTimeRemaining}
-          currentPrompt={currentPrompt}
-          userInput={userInput}
-          setUserInput={setUserInput}
           onSubmit={handleSubmit}
           onKeyPress={handleKeyPress}
           onInputFocus={handleInputFocus}
-          enemyWillDie={enemyWillDie}
-          isGameOver={isGameOver}
-          enemyDefeated={enemyDefeated}
-          playerLives={playerLives}
-          sessionState={sessionState}
+          useStore={useStore}
         />
       )}
 
       {/* Game Over Screen */}
       {isGameOver && (
         <GameOver
-          enemiesDefeated={sessionState.enemiesDefeated}
-          totalCorrect={sessionState.totalCorrect}
-          totalAttempts={sessionState.totalAttempts}
+          useStore={useStore}
           onRestart={handleRestart}
         />
       )}

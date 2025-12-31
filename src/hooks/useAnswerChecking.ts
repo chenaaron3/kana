@@ -1,37 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { initializeKanaCard, reviewKana } from "~/utils/fsrs";
 import { getTranslation } from "~/utils/promptUtils";
 
-import type { KanaCharacter } from "~/data/kana";
-import type { KanaCard, PreviousAnswer, Session } from "~/types/progress";
+import type { GameStoreHook } from "~/store/gameStore";
+import type { KanaCard } from "~/types/progress";
 
 interface UseAnswerCheckingProps {
   kanaCards: Record<string, KanaCard>;
-  currentPrompt: KanaCharacter[];
-  currentWordString: string | null;
-  sessionState: Session;
   updateKanaCards: (updates: Record<string, KanaCard>) => void;
-  setSessionState: React.Dispatch<React.SetStateAction<Session>>;
-  selectedKanaIds: string[];
+  useStore: GameStoreHook;
 }
 
 export function useAnswerChecking({
   kanaCards,
-  currentPrompt,
-  currentWordString,
-  sessionState,
   updateKanaCards,
-  setSessionState,
-  selectedKanaIds,
+  useStore,
 }: UseAnswerCheckingProps) {
-  const [previousAnswer, setPreviousAnswer] = useState<PreviousAnswer | null>(
-    null
-  );
+  // Get state from store
+  const currentPrompt = useStore((state) => state.currentPrompt);
+  const currentWordString = useStore((state) => state.currentWordString);
+  const sessionState = useStore((state) => state.sessionState);
 
-  // Clear previousAnswer only when selectedKanaIds changes
+  // Get actions from store (using getState to avoid re-renders)
+  const setPreviousAnswer = useStore.getState().setPreviousAnswer;
+  const updateSession = useStore.getState().updateSession;
+
+  // Clear previousAnswer when selectedKanaIds changes
   useEffect(() => {
-    setPreviousAnswer(null);
-  }, [selectedKanaIds]);
+    const clearPreviousAnswer = useStore.getState().clearPreviousAnswer;
+    clearPreviousAnswer();
+  }, [sessionState.selectedKanaIds, useStore]);
 
   const checkAnswers = (
     input: string,
@@ -114,11 +112,10 @@ export function useAnswerChecking({
     updateKanaCards(updatedKanaCards);
 
     // Update session state
-    setSessionState((prev) => ({
-      ...prev,
+    updateSession({
       totalCorrect: newTotalCorrect,
       totalAttempts: newTotalAttempts,
-    }));
+    });
 
     // Call the result callback
     onResult({ allCorrect, correctCount });
@@ -126,6 +123,5 @@ export function useAnswerChecking({
 
   return {
     checkAnswers,
-    previousAnswer,
   };
 }

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { generateNewEnemy } from "~/utils/promptUtils";
+import { useEffect, useMemo } from "react";
+import { createGameStore } from "~/store/gameStore";
 
-import type { EnemyStats, Session } from "~/types/progress";
+import type { Session } from "~/types/progress";
 
 interface UseGameStateProps {
   initialSession: Session;
@@ -14,16 +14,15 @@ export function useGameState({
   enemyRef,
   onEnemyDefeated,
 }: UseGameStateProps) {
-  const [currentEnemy, setCurrentEnemy] = useState<EnemyStats>(() =>
-    generateNewEnemy()
+  // Create store instance for this game session (memoized)
+  const useStore = useMemo(
+    () => createGameStore(initialSession),
+    [initialSession]
   );
-  const [playerLives, setPlayerLives] = useState<number>(3);
-  const [promptAttempt, setPromptAttempt] = useState<number>(0);
-  const [isGameOver, setIsGameOver] = useState<boolean>(false);
-  const [enemyDefeated, setEnemyDefeated] = useState<boolean>(false);
-  const [enemyWillDie, setEnemyWillDie] = useState<boolean>(false);
-  const [combo, setCombo] = useState<number>(0);
-  const [sessionState, setSessionState] = useState<Session>(initialSession);
+
+  // Get state and actions from store
+  const enemyDefeated = useStore((state) => state.enemyDefeated);
+  const spawnNewEnemy = useStore.getState().spawnNewEnemy;
 
   // Handle enemy defeat - spawn new enemy
   useEffect(() => {
@@ -32,38 +31,14 @@ export function useGameState({
 
       // Spawn new enemy and increment enemies defeated after 2 seconds
       setTimeout(() => {
-        const newEnemy = generateNewEnemy();
-        setCurrentEnemy(newEnemy);
-        setPromptAttempt(0);
-        setEnemyDefeated(false);
-        setEnemyWillDie(false);
-        setSessionState((prev) => ({
-          ...prev,
-          enemiesDefeated: prev.enemiesDefeated + 1,
-        }));
+        spawnNewEnemy();
         onEnemyDefeated();
       }, 2000);
     }
-  }, [enemyDefeated, enemyRef, onEnemyDefeated]);
+  }, [enemyDefeated, enemyRef, onEnemyDefeated, spawnNewEnemy]);
 
+  // Return store hook
   return {
-    // State
-    currentEnemy,
-    playerLives,
-    promptAttempt,
-    isGameOver,
-    enemyDefeated,
-    enemyWillDie,
-    combo,
-    sessionState,
-    // Setters
-    setCurrentEnemy,
-    setPlayerLives,
-    setPromptAttempt,
-    setIsGameOver,
-    setEnemyDefeated,
-    setEnemyWillDie,
-    setCombo,
-    setSessionState,
+    useStore,
   };
 }

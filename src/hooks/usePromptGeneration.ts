@@ -1,38 +1,37 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { allKanaCharacters } from "~/data/kana";
 import { getNextKana } from "~/utils/fsrs";
 import { getBottomKanaByAccuracy } from "~/utils/promptUtils";
 import { getNextWord } from "~/utils/wordBank";
 
 import type { KanaCharacter } from "~/data/kana";
-import type { EnemyStats, KanaCard, Session } from "~/types/progress";
+import type { GameStore, GameStoreHook } from "~/store/gameStore";
+import type { KanaCard } from "~/types/progress";
 
 type PromptType = "attack" | "defense";
 
 interface UsePromptGenerationProps {
   kanaCards: Record<string, KanaCard>;
-  sessionState: Session;
-  promptAttempt: number;
-  currentEnemy: EnemyStats;
-  enemyDefeated: boolean;
-  enemyWillDie: boolean;
   resetManaTimer: () => void;
+  useStore: GameStoreHook;
 }
 
 export function usePromptGeneration({
   kanaCards,
-  sessionState,
-  promptAttempt,
-  currentEnemy,
-  enemyDefeated,
-  enemyWillDie,
   resetManaTimer,
+  useStore,
 }: UsePromptGenerationProps) {
-  const [currentPrompt, setCurrentPrompt] = useState<KanaCharacter[]>([]);
-  const [currentWordString, setCurrentWordString] = useState<string | null>(
-    null
-  );
-  const [promptType, setPromptType] = useState<PromptType>("attack");
+  // Get state from store using the hook
+  const sessionState = useStore((state: GameStore) => state.sessionState);
+  const promptAttempt = useStore((state: GameStore) => state.promptAttempt);
+  const currentEnemy = useStore((state: GameStore) => state.currentEnemy);
+  const enemyDefeated = useStore((state: GameStore) => state.enemyDefeated);
+  const enemyWillDie = useStore((state: GameStore) => state.enemyWillDie);
+
+  // Get actions from store (using getState to avoid re-renders)
+  const setCurrentPromptFn = useStore.getState().setCurrentPrompt;
+  const setCurrentWordStringFn = useStore.getState().setCurrentWordString;
+  const setPromptTypeFn = useStore.getState().setPromptType;
 
   // Get available kana based on selection - memoize to prevent unnecessary recalculations
   const availableKana = useMemo(
@@ -48,7 +47,7 @@ export function usePromptGeneration({
     (type: PromptType): KanaCharacter[] => {
       // Defense prompts: use hardest kana (bottom 10 by accuracy)
       if (type === "defense") {
-        setCurrentWordString(null); // Defense uses individual kana mode
+        setCurrentWordStringFn(null); // Defense uses individual kana mode
 
         const bottomKana = getBottomKanaByAccuracy(
           availableKana,
@@ -77,12 +76,12 @@ export function usePromptGeneration({
       if (wordKana && wordKana.length > 0) {
         // Word mode - store the word string for translation lookup
         const wordString = wordKana.map((k) => k.character).join("");
-        setCurrentWordString(wordString);
+        setCurrentWordStringFn(wordString);
         return wordKana;
       }
 
       // Individual kana mode - clear word string
-      setCurrentWordString(null);
+      setCurrentWordStringFn(null);
 
       const promptLength = 3;
       const newPrompt: KanaCharacter[] = [];
@@ -111,7 +110,12 @@ export function usePromptGeneration({
       }
       return newPrompt;
     },
-    [availableKana, kanaCards, sessionState.enemiesDefeated]
+    [
+      availableKana,
+      kanaCards,
+      sessionState.enemiesDefeated,
+      setCurrentWordStringFn,
+    ]
   );
 
   // Generate prompt when dependencies change
@@ -125,9 +129,9 @@ export function usePromptGeneration({
       newPromptType = "defense";
     }
     const prompt = generatePrompt(newPromptType);
-    setPromptType(newPromptType);
+    setPromptTypeFn(newPromptType);
     resetManaTimer();
-    setCurrentPrompt(prompt);
+    setCurrentPromptFn(prompt);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     promptAttempt,
@@ -135,14 +139,10 @@ export function usePromptGeneration({
     enemyWillDie,
     currentEnemy.attack,
     generatePrompt,
+    setPromptTypeFn,
+    setCurrentPromptFn,
+    resetManaTimer,
     // resetManaTimer is intentionally excluded - we call it but don't depend on it
     // Including it would cause prompts to regenerate when combo resets (timerDuration changes)
   ]);
-
-  return {
-    currentPrompt,
-    currentWordString,
-    promptType,
-    setCurrentPrompt,
-  };
 }
