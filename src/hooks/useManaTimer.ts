@@ -45,7 +45,6 @@ export function useManaTimer({
   }, [combo, currentPromptLength, isGameOver, enemyWillDie, onTimerExpire]);
 
   const resetManaTimer = useCallback(() => {
-    console.log("resetManaTimer", timerDuration);
     setManaTimeRemaining(timerDuration);
   }, [timerDuration]);
 
