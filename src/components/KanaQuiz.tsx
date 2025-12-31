@@ -443,7 +443,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
   };
 
   return (
-    <div className="flex max-h-dvh md:h-dvh flex-col bg-background">
+    <div className="flex h-dvh md:h-dvh flex-col bg-background">
       {/* Header Bar - Always visible with Back button and Previous Answer */}
       <div className={`sticky top-0 z-10 border-b ${previousAnswer
         ? previousAnswer.isCorrect
@@ -584,9 +584,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
               </CardContent>
             </Card>
           </div>
-
-          {/* Spacer below prompt - flex grow to keep prompt centered */}
-          <div className="flex-1 shrink-0"></div>
+          <div className="hidden md:flex flex-1 shrink-0"></div>
         </div>
       )
       }
