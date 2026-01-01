@@ -21,13 +21,13 @@ export default function QuizHeader({
     <div
       ref={headerRef}
       className={`${isMobile ? 'fixed' : 'sticky'} top-0 left-0 right-0 z-10 ${previousAnswer
-          ? previousAnswer.isCorrect
-            ? "bg-green-600 border-green-600"
-            : "bg-red-600 border-red-600"
-          : "bg-amber-50 border-border shadow-sm"
+        ? previousAnswer.isCorrect
+          ? "bg-green-600 border-green-600"
+          : "bg-red-600 border-red-600"
+        : "bg-amber-50 border-border shadow-sm"
         }`}
     >
-      <div className="relative mx-auto max-w-4xl p-1 md:p-3 border-b border-border">
+      <div className="relative mx-auto max-w-4xl p-1 md:p-3">
         <div className="flex items-center justify-between gap-4">
           {/* Back Button */}
           <Button
