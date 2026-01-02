@@ -53,12 +53,7 @@ const Projectile = ({ onComplete, enemySpriteRef, playerContainerRef, type = 'ba
                     // Calculate absolute positions relative to viewport
                     // Start from player sprite center (wand position)
                     const startX = playerSpriteRect.left + playerSpriteRect.width / 2;
-                    // The sprite has transform: scale(4) translateY(-40%)
-                    // getBoundingClientRect shows the original size (24x24), but visually it's 96x96
-                    // The wand is in the upper portion. Since it's scaled 4x, we need to account for that
-                    // Visual height is 4x the rect height, and translateY(-40%) shifts it up
-                    // For the wand position, use a smaller offset from top since the visual sprite is larger
-                    const startY = playerSpriteRect.top + playerSpriteRect.height * 0.15; // Wand is higher up on the scaled sprite
+                    const startY = playerSpriteRect.top + playerSpriteRect.height / 2;
 
                     // Target at enemy sprite center
                     const targetX = enemySpriteRect.left + enemySpriteRect.width / 2;
