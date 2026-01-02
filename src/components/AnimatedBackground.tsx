@@ -34,7 +34,7 @@ export default function AnimatedBackground() {
 
     return (
         <motion.div
-            className="fixed inset-0"
+            className="fixed inset-0 -z-50"
             style={{
                 backgroundImage: `url(${backgroundImage})`,
                 backgroundSize: 'cover',
