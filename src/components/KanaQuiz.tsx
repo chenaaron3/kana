@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef } from 'react';
-import backgroundImage from '~/assets/background.png';
 import { getComboConfig, getEffectiveTimerDuration } from '~/constants';
 import { useAnswerChecking } from '~/hooks/useAnswerChecking';
 import { useCombat } from '~/hooks/useCombat';
@@ -9,6 +8,7 @@ import { useManaTimer } from '~/hooks/useManaTimer';
 import { useMobileViewport } from '~/hooks/useMobileViewport';
 import { usePromptGeneration } from '~/hooks/usePromptGeneration';
 
+import AnimatedBackground from './AnimatedBackground';
 import GameOver from './GameOver';
 import GameArea from './quiz/GameArea';
 import QuizHeader from './quiz/QuizHeader';
@@ -139,19 +139,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
       }}
     >
       {/* Background Image */}
-      <div
-        className="fixed inset-0"
-        style={{
-          backgroundImage: `url(${backgroundImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          opacity: 1,
-          zIndex: 0,
-          maskImage: 'radial-gradient(circle at 50% 30%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,1) 60%)',
-          WebkitMaskImage: 'radial-gradient(circle at 50% 30%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,1) 60%)',
-        }}
-      />
+      <AnimatedBackground />
 
       {/* Content Container */}
       <div className="relative z-10 flex flex-col flex-1">
