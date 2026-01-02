@@ -39,29 +39,25 @@ const Projectile = ({ onComplete, enemySpriteRef, playerContainerRef, type = 'ba
     const [startPosition, setStartPosition] = useState<{ x: number; y: number } | null>(null);
     const [targetPosition, setTargetPosition] = useState<{ x: number; y: number } | null>(null);
 
-    // Calculate start and target positions based on sprite refs (absolute positioning)
+    // Calculate start and target positions relative to player container
     // Use a small delay to ensure elements are fully rendered
     useEffect(() => {
         const calculatePositions = () => {
             if (enemySpriteRef?.current && playerContainerRef?.current) {
                 const enemySpriteRect = enemySpriteRef.current.getBoundingClientRect();
-                const playerSpriteElement = playerContainerRef.current.querySelector('img');
+                const playerContainerRect = playerContainerRef.current.getBoundingClientRect();
 
-                if (playerSpriteElement) {
-                    const playerSpriteRect = playerSpriteElement.getBoundingClientRect();
+                // Calculate positions relative to player container
+                // Origin at (0, 0) from the player
+                const startX = 0;
+                const startY = playerContainerRect.height / 2;
 
-                    // Calculate absolute positions relative to viewport
-                    // Start from player sprite center (wand position)
-                    const startX = playerSpriteRect.left + playerSpriteRect.width / 2;
-                    const startY = playerSpriteRect.top + playerSpriteRect.height / 2;
+                // Target at (enemy.x - player.x, 0) - horizontal distance only
+                const targetX = enemySpriteRect.left - playerContainerRect.left;
+                const targetY = 0;
 
-                    // Target at enemy sprite center
-                    const targetX = enemySpriteRect.left + enemySpriteRect.width / 2;
-                    const targetY = enemySpriteRect.top + enemySpriteRect.height / 2;
-
-                    setStartPosition({ x: startX, y: startY });
-                    setTargetPosition({ x: targetX, y: targetY });
-                }
+                setStartPosition({ x: startX, y: startY });
+                setTargetPosition({ x: targetX, y: targetY });
             }
         };
 
@@ -93,7 +89,7 @@ const Projectile = ({ onComplete, enemySpriteRef, playerContainerRef, type = 'ba
 
     return (
         <motion.div
-            className="fixed"
+            className="absolute"
             style={{
                 zIndex: 1000,
                 pointerEvents: 'none',
