@@ -48,13 +48,13 @@ const Projectile = ({ onComplete, enemySpriteRef, playerContainerRef, type = 'ba
                 const playerContainerRect = playerContainerRef.current.getBoundingClientRect();
 
                 // Calculate positions relative to player container
-                // Origin at (0, 0) from the player
-                const startX = 0;
-                const startY = playerContainerRect.height / 2;
+                // Origin at middle top of player
+                const startX = playerContainerRect.width / 2;
+                const startY = 0;
 
-                // Target at (enemy.x - player.x, 0) - horizontal distance only
-                const targetX = enemySpriteRect.left - playerContainerRect.left;
-                const targetY = 0;
+                // Target 
+                const targetX = enemySpriteRect.left - playerContainerRect.left + enemySpriteRect.width / 2;
+                const targetY = enemySpriteRect.height / 2;
 
                 setStartPosition({ x: startX, y: startY });
                 setTargetPosition({ x: targetX, y: targetY });

@@ -140,7 +140,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     >
       {/* Background Image */}
       <div
-        className="absolute inset-0"
+        className="fixed inset-0"
         style={{
           backgroundImage: `url(${backgroundImage})`,
           backgroundSize: 'cover',
