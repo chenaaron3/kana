@@ -69,7 +69,7 @@ const ANIMATION_CONFIG = {
     hit: { frames: hitFrames.length, fps: 10 },
     attack: { frames: attackFrames.length, fps: 10 },
     die: { frames: dieFrames.length, fps: 8 },
-    heal: { frames: healFrames.length, fps: 10 },
+    heal: { frames: healFrames.length, fps: 15 },
     miss: { frames: missFrames.length, fps: 10 },
 };
 
