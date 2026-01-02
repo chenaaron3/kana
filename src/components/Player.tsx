@@ -67,6 +67,8 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpri
     const [currentFrame, setCurrentFrame] = useState(0);
     const [showProjectile, setShowProjectile] = useState(false);
     const [missPosition, setMissPosition] = useState<{ x: number; y: number } | null>(null);
+    const [powerUpPosition, setPowerUpPosition] = useState<{ x: number; y: number } | null>(null);
+    const [previousMultiplier, setPreviousMultiplier] = useState<number>(1);
     const containerRef = useRef<HTMLDivElement>(null);
     const spriteRef = useRef<HTMLImageElement>(null);
     const config = ANIMATION_CONFIG[state];
@@ -176,6 +178,27 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpri
     // Determine projectile type based on combo: special if combo >= 3, basic otherwise
     const projectileType = combo >= 3 ? 'special' : 'basic';
 
+    // Detect when multiplier increases and show "Power Up" floating text
+    useEffect(() => {
+        const currentMultiplier = comboConfig.multiplier;
+
+        if (currentMultiplier > previousMultiplier && previousMultiplier >= 1) {
+            // Multiplier increased - show power up text
+            if (spriteRef.current && containerRef.current) {
+                const spriteRect = spriteRef.current.getBoundingClientRect();
+                const containerRect = containerRef.current.getBoundingClientRect();
+                setPowerUpPosition({
+                    x: spriteRect.left + spriteRect.width / 2 - containerRect.left,
+                    y: spriteRect.top + spriteRect.height / 2 - containerRect.top - 40,
+                });
+            }
+        }
+
+        // Update previous multiplier state
+        setPreviousMultiplier(currentMultiplier);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [combo, comboConfig.multiplier]);
+
     return (
         <div ref={containerRef} className="flex flex-col items-center gap-2 justify-end relative w-full h-full">
             {/* Mana Bar - positioned absolutely with fade animation */}
@@ -250,6 +273,15 @@ const Player = forwardRef<PlayerRef, PlayerProps>(({ isActive = false, enemySpri
                     y={missPosition.y}
                     color="text-red-600"
                     onComplete={() => setMissPosition(null)}
+                />
+            )}
+            {powerUpPosition && (
+                <FloatingText
+                    text="Power Up"
+                    x={powerUpPosition.x}
+                    y={powerUpPosition.y}
+                    color="text-yellow-500"
+                    onComplete={() => setPowerUpPosition(null)}
                 />
             )}
         </div>

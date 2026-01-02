@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { getComboConfig } from "~/constants";
 
 import type { EnemyRef } from "~/components/Enemy";
@@ -11,6 +12,9 @@ interface UseCombatProps {
 }
 
 export function useCombat({ enemyRef, playerRef, useStore }: UseCombatProps) {
+  // Screen shake state
+  const [isShaking, setIsShaking] = useState(false);
+
   // Get state from store
   const combo = useStore((state) => state.combo);
 
@@ -47,6 +51,9 @@ export function useCombat({ enemyRef, playerRef, useStore }: UseCombatProps) {
     enemyRef.current?.playAttack();
     setTimeout(() => {
       playerRef.current?.playHit();
+      // Trigger screen shake
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 100);
       // Reduce player lives when enemy attacks
       const currentLives = useStore.getState().playerLives;
       const newLives = currentLives - 1;
@@ -101,5 +108,6 @@ export function useCombat({ enemyRef, playerRef, useStore }: UseCombatProps) {
     enemyAttack,
     handleCombatResult,
     getComboMultiplier,
+    isShaking,
   };
 }

@@ -18,6 +18,7 @@ interface GameAreaProps {
   onSubmit: (e: React.FormEvent) => void;
   onKeyPress: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   useStore: GameStoreHook;
+  isShaking?: boolean;
 }
 
 export default function GameArea({
@@ -26,6 +27,7 @@ export default function GameArea({
   onSubmit,
   onKeyPress,
   useStore,
+  isShaking = false,
 }: GameAreaProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -54,7 +56,12 @@ export default function GameArea({
   }, [currentPrompt, isGameOver, enemyDefeated, enemyWillDie]);
 
   return (
-    <div className="fixed bottom-0 md:relative flex-1 flex flex-col min-h-0">
+    <div
+      className="fixed bottom-0 md:relative flex-1 flex flex-col min-h-0"
+      style={{
+        animation: isShaking ? 'shake 0.3s ease-in-out' : 'none',
+      }}
+    >
       {/* Player and Enemy - flex grow */}
       <div className="flex-1 flex items-end px-4 pointer-events-none min-h-0">
         <div className="w-full max-w-4xl mx-auto flex">

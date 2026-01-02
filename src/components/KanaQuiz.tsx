@@ -91,7 +91,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
     useStore,
   });
 
-  const { handleCombatResult } = useCombat({
+  const { handleCombatResult, isShaking } = useCombat({
     enemyRef,
     playerRef,
     useStore,
@@ -135,7 +135,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
       className="flex flex-col bg-background overflow-hidden relative"
       style={{
         height: isMobile && visualViewportHeight > 0 ? `${visualViewportHeight}px` : '100dvh',
-        maxHeight: isMobile && visualViewportHeight > 0 ? `${visualViewportHeight}px` : '100dvh'
+        maxHeight: isMobile && visualViewportHeight > 0 ? `${visualViewportHeight}px` : '100dvh',
       }}
     >
       {/* Background Image */}
@@ -170,6 +170,7 @@ export default function KanaQuiz({ session, onBack }: KanaQuizProps) {
             onSubmit={handleSubmit}
             onKeyPress={handleKeyPress}
             useStore={useStore}
+            isShaking={isShaking}
           />
         )}
 

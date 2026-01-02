@@ -119,7 +119,9 @@ const Enemy = forwardRef<EnemyRef, EnemyProps>(({ enemy, isActive = false, turns
             }
         },
         heal: (amount: number) => {
-            setCurrentHealth((prev) => Math.min(enemy.health, prev + amount));
+            setTimeout(() => {
+                setCurrentHealth((prev) => Math.min(enemy.health, prev + amount));
+            }, 500);
             setState('heal');
         },
         willDie: (damage: number) => {
